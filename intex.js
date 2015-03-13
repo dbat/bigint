@@ -1353,12 +1353,12 @@ var intxDivMod = function(X, Y, opt) {
   var A = X.store();
   var B = Y.store();
   opt = opt | 0;
-  _fxbDivMod(A, B, opt);
+  return _fxbDivMod(A, B, opt);
 }
 
-Intx.prototype.div = function(Y) { intxDivMod(this, Y, 0); }
-Intx.prototype.mod = function(Y) { intxDivMod(this, Y, 1); }
-Intx.prototype.divmod = function(Y) { intxDivMod(this, Y, 2); }
+Intx.prototype.div = function(Y) { return intxDivMod(this, Y, 0); }
+Intx.prototype.mod = function(Y) { return intxDivMod(this, Y, 1); }
+Intx.prototype.divmod = function(Y) { return intxDivMod(this, Y, 2); }
 
 // ************************************************************
 
