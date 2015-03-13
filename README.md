@@ -10,3 +10,7 @@ JavaScript simple big integer library
 *****************************
 Still in work in progress....
 not even in an alpha stage
+
+*****************************
+I used to speak in assembly x86, the optimisation applied here
+may not be appropriate and left for further exercise.

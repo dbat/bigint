@@ -1023,15 +1023,6 @@ function _fxbCmp(A, B, top1, top2) {
   return 0;
 }
 
-/*
-reverse bit
-x = ((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1);
-x = ((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2);
-x = ((x & 0xf0f0f0f0) >> 4) | ((x & 0x0f0f0f0f) << 4);
-x = ((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8);
-x = ((x & 0xffff0000) >> 16) | ((x & 0x0000ffff) << 16
-*/
-
 function _fxbShl(val, B) { // signed values positivized
   if (val <= 1) {
     if (val < 0) return _fxbShr(-val, B);
@@ -1321,7 +1312,7 @@ var _fxbDivMod = function(A, B, opt) { // A,B must be equal in length
   // originally it would be a rightshift with bt1 > bt2
   // watch this! i'm not realy sure p++/p-- direction were correct
   if (t > 16) { p++; t -= 32; } // too much rightshift, do leftshift instead
-  else if (t < -16) { p--; t += 32; } // do rightshidt
+  else if (t < -16) { p--; t += 32; } // do rightshift
 
   //for (i = +len - p; i < len + dp2; i++) a[i] = A[i - len + p];
   //for (i = +len - p; i < len; i++) q[i] = A[i - len + p];
