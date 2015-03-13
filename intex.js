@@ -1384,10 +1384,11 @@ var _toHex32 = function (n) {
    return s;
 }
 
-var _toHex64 = function (q) { return _toHex32(q.hi) + _toHex32(q.lo & MASK32); }
-var _toHex128 = function (R) { return _toHex64(R.q1) + _toHex64(R.q0); }
-var _toHex256 = function (E) { return _toHex128(E.r1) + _toHex64(E.r0); }
-var _toHex512 = function (F) { return _toHex256(F.e1) + _toHex64(F.e0); }
-var _toHex1024 = function (G) { return _toHex256(G.f1) + _toHex64(G.f0); }
+// left over, not used
+// var _toHex64 = function (q) { return _toHex32(q.hi) + _toHex32(q.lo & MASK32); }
+// var _toHex128 = function (R) { return _toHex64(R.q1) + _toHex64(R.q0); }
+// var _toHex256 = function (E) { return _toHex128(E.r1) + _toHex64(E.r0); }
+// var _toHex512 = function (F) { return _toHex256(F.e1) + _toHex64(F.e0); }
+// var _toHex1024 = function (G) { return _toHex256(G.f1) + _toHex64(G.f0); }
 
 
