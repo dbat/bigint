@@ -12,7 +12,9 @@ All right reserved
   in every turns, but finally we decided to cut te red tapes
   down to the real bone crunching buffer, left only the sane
   consumer happy, the careless ones may go to the nexus.
-
+  --
+  I used to speak in assembly x86, the optimisation applied
+  here may not be appropriate and left for further exercise.
 */
 
 var CAP32 = 0x100000000, CAP16 = 0x10000;
@@ -47,7 +49,7 @@ var Intx = function(bits) {
   if (DEBUG_MODE & 1) this.debug_depth = _k++;
 
 // procedural processing backend
-var Buffy = {n:[], f:[]};
+var Buffy = {n:[], f:[]}; //numbers[lo,hi,lo,..], flags[zero,neg,zero,..]
 function fnStore(that) { return _fxStore(Buffy, 0, that.bits >> 5, that); }
 function fnRestore(that) { _fxRestore(Buffy, 0, that.bits >> 5, that); Buffy = {n:[], f:[]}; }
 this.store = function() { return fnStore(this); } // give intxs values to Buffy
@@ -458,9 +460,6 @@ var intxMuld = function(A, B) {
 
 Intx.prototype.muls = function(b) { return intxMuls(this, b); }
 Intx.prototype.muld = function(B) { return intxMuld(this, B); }
-
-
-
 
 var i64svadd = function(A, B) {
   //if (A.bits != B.bits) return A;
