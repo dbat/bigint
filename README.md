@@ -1,5 +1,5 @@
 # intex
-JavaScript simple big integer library
+JavaScript big integer object example
 
   integer functions
 
