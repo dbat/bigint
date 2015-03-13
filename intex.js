@@ -82,8 +82,10 @@ var Int64 = function(lo, hi) {
   // if lo > 32bits, hi replaced by lo's exp
   //var cpr = "\n|\tCopyright 2015\n|\tkaka, aa and ade\n|\tAll rights reserved\n";
   lo = lo || 0; hi = hi || 0;
-  lo = parseInt(Math.random() * CAP32);
-  hi = parseInt(Math.random() * CAP32);
+  if (DEBUG_MODE & 4) {
+    lo = parseInt(Math.random() * CAP32);
+    hi = parseInt(Math.random() * CAP32);
+  }
   var ovr = 0, neg = 0, nol = 0;
   var d0 = lo & MASK32, d1 = hi;
   d0 += POSITIVIZE[+(d0 < 0)];

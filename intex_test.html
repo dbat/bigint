@@ -24,7 +24,7 @@ var evalShow = function(val, log) {
   putLog(log, S);
 }
 
-var i64 = {}; //..new Intx(30);
+var i64 = new Intx(0);
 var prebr = '\n<pre><br>';
 
 function doClick33(log, val) {
@@ -104,7 +104,7 @@ function doClick31(log, val) {
   //var s = dump(i) + ' =>' + typeof(i);
   var s = '';
   //s += _dump(Cx,0,0,0,0,' ') + '<br>\n';
-  s += dump4(i64) + '<br>\n';
+  s += dump4(i) + '<br>\n';
   //s += _dump(Cx, '    ', '', '\n') + '<br>\n';
   //s += JSON.stringify(Cx, null, 4);
   s += JSON.stringify(i, null, 4);
@@ -149,10 +149,11 @@ evals:
 <hr>
 
 <div id=div_3>
-<input size=40 id=ed3_1 value="8234567890123456789012345">
-<button onClick="doClick31('span3', ed3_1.value);">&nbsp;</button>
-| bits <input size=6 id=ed3_2 value="2000">
-<button onClick="doClick32('span3', ed3_2.value);">2</button>
+i64: <input size=30 id=ed3_1 value="8234567890123456789012345">
+ <button onClick="doClick31('span3', ed3_1.value);">1</button> |
+<input id="ickDEBUG" type="checkbox" onClick="DEBUG_MODE = -1 * +(ickDEBUG.checked);">debug |
+intx bits: <input size=6 id=ed3_2 value="2000">
+<button onClick="doClick32('span3', ed3_2.value);">2</button> |
 <button onClick="doClick33('span3', ed3_2.value);">3</button>
 <button onClick="doClick34('span3', ed3_2.value);">4</button>
 <button onClick="doClick35('span3', ed3_2.value);">5</button>
@@ -165,7 +166,7 @@ evals:
 <table class="bgc">
 <thead>
 </thead>
-<tbody>
+<tbody>         
 
 <tr>
 <td id=Log1a>1a</td>
