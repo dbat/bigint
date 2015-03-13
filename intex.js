@@ -1170,6 +1170,7 @@ function _fxbShr2(val, B0, B1) { // signed values positivized
   }
 
 function  _bsr2(n, start) {
+// yet another over optimization
 var a = [1,2,4,8,
   0x10,0x20,0x40,0x80,
   0x100,0x200,0x400,0x800,
