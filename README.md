@@ -8,7 +8,9 @@ JavaScript simple big integer library
   in every turns, but finally we decided to cut te red tapes
   down to the real bone crunching buffer, left only the sane
   consumer happy, the careless ones may go to the nexus.
+
   --
+
   I used to speak in assembly x86, the optimisation applied
   here may not be appropriate and left for further exercise.
 
