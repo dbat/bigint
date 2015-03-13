@@ -6,3 +6,7 @@ JavaScript simple big integer library
   in every turns, but finally we decided to cut te red tapes
   down to the real bone crunching buffer, left only the sane
   consumer happy, the careless ones may go to the nexus.
+
+*****************************
+Still in work in progress....
+not even in an alpha stage
