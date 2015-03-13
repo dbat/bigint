@@ -1,0 +1,219 @@
+// BCA 084 1650 408 an. Andreas Handoko
+<!doctype html>
+<html lang=en>
+<head><title>walah! #1</title>
+<style>
+hr { color:lightgray; }
+.nowr { white-space: nowrap; }
+.bgc { background-color: #abc; }
+button { height:1.72em; }
+button .bt2 { width:16px; height:20px; }
+</style>
+<script src=intex.js></script>
+<script src=dumb.js></script>
+<script>
+function gete(id)  { return document.getElementById(id); }
+function getVal(id)  { return gete(id).value; }
+function getInt(id) { return parseInt(getVal(id)); }
+function putVal(id, val)  { gete(id).value = val; }
+function getLog(log) { return gete(log).innerHTML; }
+function putLog(log, S) { gete(log).innerHTML = S; }
+function addLog(log, S) { var e = gete(log); e.innerHTML += S; }
+
+var evalShow = function(val, log) {
+  var S = eval(val);
+  putLog(log, S);
+}
+
+var i64 = {}; //..new Intx(30);
+var prebr = '\n<pre><br>';
+
+function doClick33(log, val) {
+var s = '';
+  i64.store();
+  s += JSON.stringify(i64, null, 4);  s += '\n';
+  s += JSON.stringify(i64.BufX, null, 2);
+
+  putLog(log, prebr + s);
+}
+function doClick34(log, val) {
+var s = '';
+  s += i64.items(); s += '\n';
+  s += dump2(i64); s += '\n';
+  s += dump2(i64.BufX); s += '\n';
+
+  putLog(log, prebr + s);
+}
+
+function doClick35(log, val) {
+var a=1, b=2, c=a+b, d=c*5-2*b+3*a;
+var prebr = '<pre><br>';
+var s = '';
+
+s += 'var a=1, b=2, c=a+b, d=c*5-2*b+3*a'; s += '\n';
+s += 'a:' + a + ', b:' + b + ', c:' + c + ', d:' + d; s += '\n';
+
+  putLog(log, prebr + s);
+}
+
+
+function doClick32(log, val) {
+var s = '';
+  i64 = new Intx(val);
+  //s += _dump(i64, '  ','\n', '  ');
+//  s +='\n';
+//  s += i64.store();
+//  s +='\n';
+//  s += dump2(i64.store());
+//  s +='\n';
+//  //s += dump2(i64);
+//  s +='\n';
+//  //s += i64;
+//  s += JSON.stringify(i64, null, 2);
+//  s +='\n';
+//  //
+//  s += JSON.stringify(i64.store(), null, 2);
+//  //s += i64.items();
+//  s +='\n';
+//  //s += dump2(i64);
+//  s +='\n';
+//  s +='\n';
+//  s +='\n';
+  //s += i64.items().tostring();
+  //s = += dump2(i64);
+  //i64.store();
+  s += i64; s += '\n';
+  s += JSON.stringify(i64, null, 4); s += '\n';
+
+  putLog(log, prebr + s);
+}
+
+function dumpres(log, val, opt) {
+var a;
+  if (opt) a = val;
+  putLog(log, a);
+}
+
+
+function doClick31(log, val) {
+  //var i = 0;
+  var i = new Int64(val);
+  //var i = new Intx(-1);
+  //var i = new Intx(128);
+  //var i = new Intx(64);
+  //var s = JSON.stringify(i, null, 4);
+  //var s = dump(i) + ' =>' + typeof(i);
+  var s = '';
+  //s += _dump(Cx,0,0,0,0,' ') + '<br>\n';
+  s += dump4(i64) + '<br>\n';
+  //s += _dump(Cx, '    ', '', '\n') + '<br>\n';
+  //s += JSON.stringify(Cx, null, 4);
+  s += JSON.stringify(i, null, 4);
+  //s += '\n';
+  //s += '\nlo: ' + i.lo.toString();
+  //s += '\ncf: ' + i.cf;
+  //s += '\nbits: ' + i.bits;
+  //s += '\ncfx: ' + i.cfx;
+  //s += '\ncfg: ' + i.cfg();
+  s = '<br><pre>' + s;
+  putLog(log, s);
+}
+
+ 
+
+</script>
+</head>
+<body>
+
+<div id=div_1 class="nowr">
+evals:
+<input size=20 id=ed1_1 value="(123*456).toString(16)">
+<button onClick="putLog('span1', eval(ed1_1.value));">1</button> |
+<input size=35 id=ed1_2 value="">
+<button onClick="putLog('span1', eval(ed1_2.value));">2</button> |
+<input size=25 id=ed1_3 value="A={lo:234567890, hi:4456}">
+<button onClick="putLog('span1', eval(ed1_3.value));">3</button>
+<br>
+<button onClick="putLog('span1', '');">clear</button> |
+<span id=span1></span>
+</div>
+<hr>
+
+<div id=div_2>
+<input size=40 id=ed2_1 value=1234567890>
+<button onClick="putLog('span2', _toHex(eval(ed2_1.value),2));">tohex</button> |
+<input size=20 id=ed2_2 value=1234567890>
+<button onClick="dumpres('span2', ed2_2.value, 0)">&nbsp;</button>
+<button onClick="dumpres('span2', ed2_2.value, 1)">&nbsp;</button>
+<span id=span2></span>
+</div>
+<hr>
+
+<div id=div_3>
+<input size=40 id=ed3_1 value="8234567890123456789012345">
+<button onClick="doClick31('span3', ed3_1.value);">&nbsp;</button>
+| bits <input size=6 id=ed3_2 value="2000">
+<button onClick="doClick32('span3', ed3_2.value);">2</button>
+<button onClick="doClick33('span3', ed3_2.value);">3</button>
+<button onClick="doClick34('span3', ed3_2.value);">4</button>
+<button onClick="doClick35('span3', ed3_2.value);">5</button>
+<span id=span3></span>
+</div>
+<hr>
+
+---
+<div>
+<table class="bgc">
+<thead>
+</thead>
+<tbody>
+
+<tr>
+<td id=Log1a>1a</td>
+<td id=Log1b>1b</td>
+<td id=Log1c>1c</td>
+<td id=Log1d>1d</td>
+<td id=Log1e>1e</td>
+</tr>
+
+<tr>
+<td id=Log2a>2a</td>
+<td id=Log2b>2b</td>
+<td id=Log2c>2c</td>
+<td id=Log2d>2d</td>
+<td id=Log2e>2e</td>
+</tr>
+
+<tr>
+<td id=Log2a>2a</td>
+<td id=Log2b>2b</td>
+<td id=Log2c>2c</td>
+<td id=Log2d>2d</td>
+<td id=Log2e>2e</td>
+</tr>
+
+<tr>
+<td id=Log2a>2a</td>
+<td id=Log2b>2b</td>
+<td id=Log2c>2c</td>
+<td id=Log2d>2d</td>
+<td id=Log2e>2e</td>
+</tr>
+
+<tr>
+<td id=Log2a>2a</td>
+<td id=Log2b>2b</td>
+<td id=Log2c>2c</td>
+<td id=Log2d>2d</td>
+<td id=Log2e>2e</td>
+</tr>
+
+</tbody>
+<tfoot>
+</tfoot>
+<div id=Log99><hr></div>
+
+</div>
+
+</body>
+</html>
