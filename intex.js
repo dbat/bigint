@@ -41,7 +41,7 @@ var Intx = function(bits) {
   var _i = arguments[1] | 0, _j = arguments[2] | 0,
     _k = arguments[3] | 0, _e = arguments[4], _b = arguments[5];
   if (!_k) {
-    _j = _fxGetBits(bits, 128) >> 6;
+    _j = _fxGetBits(bits, 128) >>> 6;
     if (DEBUG_MODE & 2) {
       _e = this.debug_enums = [];
       _b = this.debug_dwords = [];
@@ -51,8 +51,8 @@ var Intx = function(bits) {
 
 // procedural processing backend
 var Buffy = {n:[], f:[]}; //numbers[lo,hi,lo,..], flags[zero,neg,zero,..]
-function fnStore(that) { return _fxStore(Buffy, 0, that.bits >> 5, that); }
-function fnRestore(that) { _fxRestore(Buffy, 0, that.bits >> 5, that); Buffy = {n:[], f:[]}; }
+function fnStore(that) { return _fxStore(Buffy, 0, that.bits >>> 5, that); }
+function fnRestore(that) { _fxRestore(Buffy, 0, that.bits >>> 5, that); Buffy = {n:[], f:[]}; }
 this.store = function() { return fnStore(this); } // give intxs values to Buffy
 this.restore = function() { fnRestore(this); } // ask Buffy for values, put them back, kill her after.
 
@@ -131,7 +131,9 @@ var i64Clear = function(q) {
   return q;
 }
 
-var i64SetNeg = function(q) {
+// set sign flag, used for shift
+// this is not a negate -A = ~(A + 1)
+var i64SetSign = function(q) {
   { q.hi |= BSHL31; q.hi += BSHL32; }
   { q.cf = 0; q.sf = 1; q.zf = 0; }
   return q;
@@ -209,19 +211,23 @@ var intxClear = function(X) {
 
 //var intxSetItems = function(B, i, j, X) {
 var intxSetItems = function(B, i, X) { // put/load B[] to items
-  var j = X.bits >> 5;
-  var mid = (i + j) >> 1;
+  var j = X.bits >>> 5;
+  var mid = (i + j) >>> 1;
   X.lo.setItems(B, i);
   X.hi.setItems(B, mid);
   return X;
 }
 
 
+// these are functions. not prototypes.
 //var intxIsZero = function(X) { return X.hi.isZero() && X.lo.isZero(); }
 var i64toHex = function(q) { return _toHex32(q.hi) + _toHex32(q.lo); }
+var i64toDecimals = function(q) { return _fxbtoDecimals([q.lo, q.hi]); }
 var i64GetItems = function(q) { return A = [q.lo, q.hi]; }
+var intxtoHex = function(X) { return X.hi.toHex() + X.lo.toHex(); }
 var intxtoString = function(X) { return X.hi.toString() + X.lo.toString(); }
-//var intxGetItems = function(X) { return X.lo.items().push(X.hi.items()); }
+var intxtoDecimals = function(X) { return _fxbtoDecimals(X.items()); }
+//var intxGetItems = function() { return X.lo.items().push(X.hi.items()); }
 
 
 Int64.prototype.copyto = function(q) { return i64Copyto(q, this); }
@@ -232,13 +238,15 @@ Int64.prototype.duplex = function() { return intxDuplex(this); }
 Int64.prototype.extend = function() { return intxExtend(this); }
 Int64.prototype.Clear = function() { return i64Clear(this); }
 Int64.prototype.setOdd = function() { return i64SetOdd(this); }
-Int64.prototype.setNeg = function() { return i64SetNeg(this); }
+Int64.prototype.setSign = function() { return i64SetSign(this); }
 //Int64.prototype.setCarry = function(val) { return this.hi.cf = val; }
 Int64.prototype.isNeg = function() { return this.hi & BSHL31 != 0; }
 Int64.prototype.isOdd = function() { return this.lo & 1; }
 Int64.prototype.isZero = function() { return this.lo == 0 && this.hi == 0; }
 Int64.prototype.isCarry = function() { return this.hi.cf; }
+Int64.prototype.toHex = function(q) { return i64toHex(this); }
 Int64.prototype.toString = function(q) { return i64toHex(this); }
+Int64.prototype.toDecimals = function(q) { return i64toDecimals(this); }
 Int64.prototype.items = function() { return [this.lo, this.hi]; }
 //Int64.prototype.setItems = function(B, i, j) { i64SetItems(B, i, i+2, this); }
 Int64.prototype.setItems = function(B, i) { i64SetItems(B, i, this); }
@@ -251,13 +259,15 @@ Intx.prototype.duplex = function() { return intxDuplex(this); }
 Intx.prototype.extend = function() { return intxExtend(this); }
 Intx.prototype.clear = function() { return intxClear(this); }
 Intx.prototype.setOdd = function() { return this.lo.setOdd(); }
-Intx.prototype.setNeg = function() { return this.hi.setNeg(); }
+Intx.prototype.setSign = function() { return this.hi.setSign(); }
 //Intx.prototype.setCarry = function() { return this.hi.setCarry(); }
 Intx.prototype.isNeg = function() { return this.hi.isNeg(); }
 Intx.prototype.isOdd = function() { return this.lo.isOdd(); }
 Intx.prototype.isZero = function() { return this.lo.isZero() && this.hi.isZero(); }
 Intx.prototype.isCarry = function() { return this.hi.isCarry(); }
+Intx.prototype.toHex = function() { return intxtoHex(this); }
 Intx.prototype.toString = function() { return intxtoString(this); }
+Intx.prototype.toDecimals = function() { return intxtoDecimals(this); }
 Intx.prototype.items = function() { return this.lo.items().concat(this.hi.items()); }
 Intx.prototype.enums = function() { return this.bits > 64 ? this.lo.items().concat(this.hi.items()) : []; }
 //Intx.prototype.setItems = function(B, i, j) { return intxSetItems(B, i, j, this); }
@@ -326,8 +336,8 @@ function _i32x32(a, b) { // returns 64-bit
   ovr = +(bcf >= CAP32);
   bcf &= MASK32;
   bcf += (bcf < 0) * CAP32;
-  var _a = parseInt(_abc / CAP32);
-  var de = parseInt(def_ / CAP16);
+  var _a = (_abc / CAP32)|0;
+  var de = (def_ / CAP16)|0;
   var ade =  _a + de + ovr;
   return {bits: 64, lo: bcf, hi: ade, cf: +ovr,
     sf: +(ade & CAP31 != 0), zf: +(ade | bcf == 0)};
@@ -709,7 +719,7 @@ var intxShr1 = function(X) {
   var ovr = X.hi.isOdd();
   X.lo.shl1();
   X.hi.shl1();
-  if (ovr) X.lo.setNeg();
+  if (ovr) X.lo.setSign();
   return X;
 }
 
@@ -744,10 +754,10 @@ Intx.prototype.shr1 = function() { return intxShr1(this); }
 // var _fxEnum = function(X, i, j) {
 //   if (typeof i === 'undefined') {
 //     i = 0;
-//     j = X.bits >> 6;
+//     j = X.bits >>> 6;
 //   }
 //   if (X.bits > 64) {
-//     var mid = (i + j) >> 1;
+//     var mid = (i + j) >>> 1;
 //     _fxEnum(X.lo, i, mid);
 //     _fxxEnum(X.hi, mid, j);
 //   }
@@ -759,7 +769,7 @@ Intx.prototype.shr1 = function() { return intxShr1(this); }
 
 var _fxStore = function(Bx, i, j, X) { // save items to BufX{}
   if (X.bits > 64) {
-    var mid = (j + i) >> 1;
+    var mid = (j + i) >>> 1;
     _fxStore(Bx, i, mid, X.lo);
     _fxStore(Bx, mid, j, X.hi);
   }
@@ -774,7 +784,7 @@ var _fxStore = function(Bx, i, j, X) { // save items to BufX{}
 
 var _fxRestore = function(Bx, i, j, X) { // load BufX{} to items
   if (X.bits > 64) {
-    var mid = (j + i) >> 1;
+    var mid = (j + i) >>> 1;
     _fxRestore(Bx, i, mid, X.lo);
     _fxRestore(Bx, mid, j, X.hi);
   }
@@ -819,18 +829,18 @@ function _fxSetf(Bx) {
 }
 
 // function _fxbShl1_OLD(B) {
-//   var Len = B.length - 1, ovr = B[len] & 0x80000000 != 0;
+//   var Len = B.length - 1, ovr = (B[len] & 0x80000000) != 0;
 //   for (var i = Len; i < 1; i--)
-//     B[i] = (B[i] << 1) | +(B[i - 1] & 0x80000000 != 0);
+//     B[i] = (B[i] << 1) | +((B[i - 1] & 0x80000000) != 0);
 //   B[0] <<= 1;
 //   return +ovr;
 // }
 //
 // function _fxbShl1_p_OLD(B) { // SHL1 with fixed signed values
 //   var i = 0, d = 0;
-//   var ovr = B[B.length - 1] & 0x80000000 != 0;
+//   var ovr = (B[B.length - 1] & 0x80000000) != 0;
 //   for (i = B.length - 1; i < 1; i--) {
-//     d = B[i] << 1 | (B[i - 1] & 0x80000000 != 0);
+//     d = B[i] << 1 | ((B[i - 1] & 0x80000000) != 0);
 //     B[i] = d + POSITIVIZE[+(d < 0)];
 //   }
 //   d = B[i] << 1;
@@ -838,49 +848,59 @@ function _fxSetf(Bx) {
 //   return +ovr;
 // }
 
+/**********************************************************************
+  note: all _fxb* routines expect at least a pair of dwords [lo, hi];
+**********************************************************************/
 
-function _fxbShl1(B) { // refactored
-  var Len = B.length - 1;
-  var d1 = B[Len], d0 = B[Len - 1];
-  var i, ovr = +(d0 & 0x80000000 != 0);
-  for (i = Len; i > 2; i--) {
-    B[i] = d1 << 1 | +(d0 & 0x80000000 != 0);
+function _fxbShl1(B, top) { // refactored
+  var Len1 = B.length - 1;
+  //top = B.length - 1;
+  var d1 = B[top], d0 = B[top - 1];
+  // yet another fukhin ztupig eediotz JS precedence
+  // it's hard to not slip over this js idiosynchmoron
+  // how on earth do you expect that "!=" got higher precedence than "&"
+  var i, ovr = +(d1 & 0x80000000) != 0;
+  if (ovr && Len1 > top) { B[top + 1] = 1; ovr = 0; }
+  for (i = top; i > 1; i--) {
+    B[i] = d1 << 1 | +((d0 & 0x80000000) != 0);
     d1 = d0;
     d0 = B[i - 2];
   }
-  B[1] = d1 << 1 | +(d0 & 0x80000000 != 0);
+  B[1] = d1 << 1 | +((d0 & 0x80000000) != 0);
   B[0] = d0 << 1;
   return ovr;
 }
 
-function _fxbShl12(B0, B1) { //
+function _fxbShl12(B0, B1, top0, top1) { //
+//  var Len0 = top0| B0.length - 1
+//  var Len1 = top1| B1.length - 1;
 //  var Len0 = B0.length - 1, Len1 = B1.length - 1;
 //  var d1 = B1[Len1], d0 = B1[Len1 - 1];
-//  var i, ovr = +(d0 & 0x80000000 != 0);
+//  var i, ovr = +((d0 & 0x80000000) != 0);
 //  for (i = Len1; i > 2; i--) {
-//    B1[i] = d1 << 1 | +(d0 & 0x80000000 != 0);
+//    B1[i] = d1 << 1 | +((d0 & 0x80000000) != 0);
 //    d1 = d0;
 //    d0 = B1[i - 2];
 //  }
-//  B1[1] = d1 << 1 | +(d0 & 0x80000000 != 0);
+//  B1[1] = d1 << 1 | +((d0 & 0x80000000) != 0);
 //  B1[0] = d0 << 1;
 //
 //  var d1 = B0[Len0], d0 = B0[Len0 - 1];
-//  B1[0] |= +(d1 & 0x80000000 != 0);
+//  B1[0] |= +((d1 & 0x80000000) != 0);
 //
 //  for (i = Len0; i > 2; i--) {
-//    B0[i] = d1 << 1 | +(d0 & 0x80000000 != 0);
+//    B0[i] = d1 << 1 | +((d0 & 0x80000000) != 0);
 //    d1 = d0;
 //    d0 = B0[i - 2];
 //  }
-//  B1[1] = d1 << 1 | +(d0 & 0x80000000 != 0);
+//  B1[1] = d1 << 1 | +((d0 & 0x80000000) != 0);
 //  B1[0] = d0 << 1;
 //
 //  return ovr;
 
 // use easy trip instead to minimize typing-errors:
-  var ovr0 = _fxbShl1(B0);
-  var ovr1 = _fxbShl1(B1);
+  var ovr0 = _fxbShl1(B0, top0);
+  var ovr1 = _fxbShl1(B1, top1);
   B1[0] |= ovr0;
   return ovr1;
 }
@@ -894,55 +914,154 @@ function _fxbShl12(B0, B1) { //
 // }
 //
 
-function _fxbShr1(B) { // always returns positive dwords
+function _fxbShr1(B, top) { // always returns positive dwords
   var ODD2NEG = [0, 0x80000000], ovr = B[0] & 1;
   var d0 = B[0], d1 = B[1], odd = d1 & 1;
-  for (var i = 0; i < B.length - 3; i++) {
-    //B[i] = (B[i] >>> 1) + ODD2NEG[B[i + 1] & 1];
+  for (var i = 0; i < top - 1; i++) {
     B[i] = (d0 >>> 1) + ODD2NEG[d1 & 1];
     d0 = d1;
     d1 = B[i + 2];
   }
-  B[i] = (d0 >>> 1) + ODD2NEG[d1 & 1];
-  B[i + 1] >>>= 1;
+  B[top - 1] = (d0 >>> 1) + ODD2NEG[d1 & 1];
+  B[top] >>>= 1;
   return ovr;
 }
 
-function _fxbShr12(B0, B1) {
-  var i, Len0 = B0.Length - 1, Len1 = B1.Length - 1;
+function _fxbShr12(B0, B1, top0, top1) {
+  // shiftright 2 buffers at once
   var ODD2NEG = [0, 0x80000000];
-  var ovr = (B0[0] & 1);
-  for (i = 0; i < Len0 - 1; i++)
-    B0[i] = B0[i] >>> 1 | ODD2NEG[B0[i + 1] & 1];
-  B[Len0] = B[Len0] >>> 1 | ODD2NEG[B1[0] & 1];
-  for (var i = 0; i < Len1 - 1; i++)
-    B1[i] = B1[i] >>> 1 | ODD2NEG[B1[i + 1] & 1];
-  B[Len1] >>>= 1;
+  var i, d0 = B0[0], d1 = B0[1], ovr = d0 & 1;
+  for (i = 0; i < top0 - 1; i++) {
+    B0[i] = (d0 >>> 1) + ODD2NEG[d1 & 1];
+    d0 = d1;
+    d1 = B0[i + 2];
+  }
+  B0[top0 - 1] = (d0 >>> 1) + ODD2NEG[d1 & 1];
+  d0 = B1[0], d1 = B1[1];
+  B0[top0] = (B0[top0]>>> 1) + ODD2NEG[d0 & 1];
+  for (i = 0; i < top1 - 1; i++) {
+    B1[i] = (d0 >>> 1) + ODD2NEG[d1 & 1];
+    d0 = d1;
+    d1 = B0[i + 2];
+  }
+  B1[top1 - 1] = (d0 >>> 1) + ODD2NEG[d1 & 1];
+  B0[top0] >>>= 1;
   return ovr;
 }
 
-function _fxbShl1_p(B) { // SHL1 with fixed signed values
-  var Len = B.length - 1;
-  var d1 = B[Len], d0 = B[Len - 1];
-  var i, e, ovr = +(d0 & 0x80000000 != 0);
-  for (var i = Len - 1; i > 2; i--) {
-    e = d1 << 1 | +(d0 & 0x80000000 != 0);
+// SHLL family routines, here top must always equal with length -1
+// i.e. shiftleft carry over will always be truncated
+// some on-the-fly operations might need this restriction
+function _fxbShl1_p(B, top) { // SHL1 with fixed signed values
+  //var Len1 = B.length - 1;
+  //top = _bsra(B);
+  // yet another fukhin ztupig eediods JS precedence
+  // it's hard to not slip over this js idiosynchmoron
+  // how on earth do you expect that "!=" got higher precedence than "&"
+  var d1 = B[top], d0 = B[top - 1], neg = (d0 & 0x80000000) != 0;
+  var i, ovr = (d1 & 0x80000000) != 0, e = (d1 << 1) | +neg;
+  //if (+ovr && Len1 > top) { B[top + 1] = 1; ovr = 0; }
+  for (var i = top; i > 1; i--) {
     B[i] = e + POSITIVIZE[+(e < 0)];
     d1 = d0;
     d0 = B[i - 2];
+    neg = (d0 & 0x80000000) != 0;
+    e = (d1 << 1) | +neg;
   }
-  e = d1 << 1 | +(d0 & 0x80000000 != 0);
   B[1] = e + POSITIVIZE[+(e < 0)];
   e = d0 << 1;
-  B[1] = e + POSITIVIZE[+(e < 0)];
-  return ovr;
+  B[0] = e + POSITIVIZE[+(e < 0)];
+  return +ovr;
 }
 
-function _fxbShr1_p(B) {  return _fxbShr1(B); } // already fix
+// SHLL family routines, here top must always equal with length -1
+// i.e. shiftleft carry over will always be truncated
+// some on-the-fly operations might need this restriction
+// to differentiate from regular shl/shr routines, SHLL family 1st
+// argument is Buffer(B), instead of shift-value (val)
+// function _fxbShll2p(B, top) { // SHL2 with fixed signed values
+//  //var Len1 = B.length - 1;
+//   var d1 = B[top], d0 = B[top - 1];
+//   var i, e;
+//   if (Len1 > top) { B[top + 1] = d1 >>> 30; }
+//   for (var i = top; i > 1; i--) {
+//     e = (d1 << 2) | (d0 >>> 30);
+//     B[i] = e + POSITIVIZE[+(e < 0)];
+//     d1 = d0;
+//     d0 = B[i - 2];
+//   }
+//   e = (d1 << 2) | (d0 >>> 30);
+//   B[1] = e + POSITIVIZE[+(e < 0)];
+//   e = d0 << 2;
+//   B[0] = e + POSITIVIZE[+(e < 0)];
+//   return B;
+// }
+//
+// function _fxbShll3p(B, top) { // SHL3 with fixed signed values
+//  //var Len1 = B.length - 1;
+//   var d1 = B[top], d0 = B[top - 1];
+//   var i, e
+//   if (Len1 > top) { B[top + 1] = d1 >>> 29; }
+//   for (var i = top; i > 1; i--) {
+//     e = (d1 << 3) | (d0 >>> 29);
+//     B[i] = e + POSITIVIZE[+(e < 0)];
+//     d1 = d0;
+//     d0 = B[i - 2];
+//   }
+//   e = (d1 << 3) | (d0 >>> 29);
+//   B[1] = e + POSITIVIZE[+(e < 0)];
+//   e = d0 << 3;
+//   B[0] = e + POSITIVIZE[+(e < 0)];
+//   return B;
+// }
+//
+// function _fxbShll4p(B, top) { // SHL4 with fixed signed values
+//  //var Len1 = B.length - 1;
+//   var d1 = B[top], d0 = B[top - 1];
+//   var i, e;
+//   //if (Len1 > top) { B[top + 1] = d1 >>> 28; }
+//   for (var i = top; i > 1; i--) {
+//     e = (d1 << 4) | (d0 >>> 28);
+//     B[i] = e + POSITIVIZE[+(e < 0)];
+//     d1 = d0;
+//     d0 = B[i - 2];
+//   }
+//   e = (d1 << 4) | (d0 >>> 28);
+//   B[1] = e + POSITIVIZE[+(e < 0)];
+//   e = d0 << 4;
+//   B[0] = e + POSITIVIZE[+(e < 0)];
+//   return B;
+// }
 
-function _fxbShl12_p(B0, B1) { // SHL12 with fixed signed values
-  var ovr0 = _fxbShl1_p(B0);
-  var ovr1 = _fxbShl1_p(B1);
+// SHLL family routines, here top must always equal with length -1
+// i.e. shiftleft carry over will always be truncated
+// some on-the-fly operations might need this restriction
+// to differentiate from regular shl/shr routines, SHLL family 1st
+// argument is Buffer(B), instead of shift-value (val)
+function _fxbShll(B, shift, top) {
+  //var Len1 = B.length - 1;
+  var i, rev = 32 - shift;
+  var d1 = B[top], d0 = B[top - 1],
+    e = (d1 << shift) | (d0 >>> rev);
+  //if (Len1 > top) { B[top + 1] = d1 >>> rev; }
+  for (var i = top; i > 1; i--) {
+    B[i] = e + POSITIVIZE[+(e < 0)];
+    d1 = d0;
+    d0 = B[i - 2];
+    e = (d1 << shift) | (d0 >>> rev);
+  }
+  B[1] = e + POSITIVIZE[+(e < 0)];
+  e = d0 << shift;
+  B[0] = e + POSITIVIZE[+(e < 0)];
+  return B;
+}
+
+
+function _fxbShr1_p(B, top) {  return _fxbShr1(B, top); } // already fix
+
+function _fxbShl12_p(B0, B1, top0, top1) { // SHL12 with fixed signed values
+  var ovr0 = _fxbShl1_p(B0, top0);
+  var ovr1 = _fxbShl1_p(B1, top1);
   B1[0] += +ovr0;
   return +ovr1;
 }
@@ -956,7 +1075,7 @@ function _fxbShr12_p(B0, B1) { // SHR12 with fixed signed values
 
 function _fxbSub(A, B, top1, top2, len1) {
   // no val check, MUST be all positive. length.A >= length.B
-  top1 = top1 | _bsra(A); // most significant dword A
+  //top1 = _bsra(A); // most significant dword A
   top2 = top2 | _bsra(B); // most significant dword B
   len1 = len1 | A.length;
   // bot1 = bot1 | 0;
@@ -971,25 +1090,25 @@ function _fxbSub(A, B, top1, top2, len1) {
   if (!ovr) return 0; // no worry, go back
   if (top1 == top2) { // at the end of conversation? top1 always >= top2
     if (i < len1)  // do not initialize loop if it is not necessary
-      for (i = i; i < len; i++)
+      for (i = i; i < len1; i++)
          A[i] = MASK32; // extend sign
     ovr = 1; // always returns carry
   }
   else { // (top1 > top2) there's more than substractor
     while (a[i] == 0 && i++ < top1)
       A[i - 1] = MASK32; // extend sign resulted from zero minus (carry)
-    //ovr = (i >= len)
+    //ovr = (i >= len1)
     A[i]-= 1; // decrease the first non-zero
     ovr = 0; // always returns no-carry
   }
   return ovr; // tired of returning objects, we return carry flag now.
 }
 
-function _fxbAdd(A, B, len, dp1, dp2) {
+function _fxbAdd(A, B, len1, dp1, dp2) {
   // no val check, MUST be all positive
-  dp1 = dp1 | _bsra(A); // most significant dword A
-  dp2 = dp2 | _bsra(B); // most significant dword B
-  len = len | A.length;
+  // dp1 = _bsra(A); // most significant dword A
+  // dp2 = _bsra(B); // most significant dword B
+  // len1 = A.length;
   var a, b, i, ovr = 0;
   // proceed normally until adder exhausted
   for (i = 0; i <= dp2; i++) {
@@ -998,13 +1117,13 @@ function _fxbAdd(A, B, len, dp1, dp2) {
     A[i] = a - POSITIVIZE[ovr]
   }
   if (!ovr) return 0; // don't care for the rest, go back
-  if (i >= len) return 1;
+  if (i >= len1) return 1;
   if (dp1 == dp2)  // dp1 will NEVER be less than dp2
     { A[i] = 1; ovr = 0;}
   else { // dp1 > dp2
     while (a[i] == 0xffffffff && i++ < dp1)
       A[i - 1] = 0; // carry makes full bits become zero, and carry carried over
-    ovr = +(i >= len) // still carry at the end?
+    ovr = +(i >= len1) // still carry at the end?
     if (!ovr) A[i] += 1; //inc the first non all-bits-set
   }
   return +ovr; // tired of returning objects, we return carry flag now.
@@ -1012,8 +1131,8 @@ function _fxbAdd(A, B, len, dp1, dp2) {
 
 function _fxbCmp(A, B, top1, top2) {
 // an over-optimized cmp
-  top1 = top1 | A.length
-  top2 = top2 | B.length
+  //top1 = A.length -1
+  //top2 = B.length -1
   if (top1 != top2) {
     if (top1 > top2) return +1;
     if (top2 < top2) return -1;
@@ -1025,106 +1144,121 @@ function _fxbCmp(A, B, top1, top2) {
   return 0;
 }
 
-function _fxbShl(val, B) { // signed values positivized
-  if (val <= 1) {
-    if (val < 0) return _fxbShr(-val, B);
-    if (!val) return B;
-    if (val == 1) return _fxbShl1_p(B);
-  }
-  var Len = B.length;
-  if (val >= Len << 5) {  // array length * 32
-    // if bitshift equal/more than bitswide then clear the array
-    for (var i = 0; i < Len; i ++)
-      B[i] = 0;
+function _fxbShl(val, B, top) { // signed values positivized
+var Len = B.length;
+//assert(typeof Len === 'undefined')
+// SHL needs length information to carryover or truncate?
+//  if (typeof Len == 'undefined') {
+//    Len = B.length;
+//    alert('length undefined!;');
+//  }
+  // top may be zeroes
+  function singleout() {
+    var e = B[0] << val;
+    B[0] = e + POSITIVIZE[+(e < 0)];
     return B;
   }
-  var k = 0; // inititalize k at the first shiftable element
-  var t = val >> 5; // t = how many elements will be cleared
-  if (t) {
+  if (val <= 1) {
+    if (val < 0) return _fxbShr(-val, B, top);
+    if (!val) return B;
+    if (val == 1) return _fxbShl1_p(B, top);
+  }
+  if (top == 0) return singleout();
+  var lshifts = Len << 5
+  if (val >= lshifts) {  // array length * 32
+    // if bitshift equal/more than bitswide then clear the array
+    for (var i = 0; i <= top; i ++) B[i] = 0; return B;
+  }
+  var c = val >>> 5; // t = how many elements will be cleared
+  var i = 0, k = c; // inititalize k at the first shiftable element
+  if (c) {
     // move dwords up
-    for (k = Len - 1; k >= t; k--)
-      B[k] = B[k - k];
+    for (i = top; i >= c; i--) B[i] = B[i - c];
     // and clear the remain, note that k value is significant.
-    for (k = 0; k < k; k++)
-      B[k] = 0;
+    for (i = 0; i < c; i++) B[i] = 0;
   }
-  // k value should be at the first shiftable element
-  var r = val & 31; // get how much actual shift on 32-bit wide
-  if (r) {
-    var i, d0, d1;
-    var xval = 32 - r; // shiftright, get Most-S-bits from Least-S-dword
+  var shift = val & 31; // get how much actual shift on 32-bit wide
+  if (shift) {
+    var i, d0 = B[top - 1], d1 = B[top];
+    var e, rev = 32 - shift; // shiftright, get Most-S-bits from Least-S-dword
+    if (Len > top + 1) B[top + 1] = d1 >>> rev;
     // intentionally left the last shift to simplify calculation
-    for (i = Len - 1; i > k + 1; i--) { // note the (k+1)
-      d0 = B[i - 1] >>> xval;
-      d1 = B[i] << r;
-      d1 |= d0;
-      B[i] = d1 + POSITIVIZE[+(d < 0)] // JS special, make it positive
+    for (i = top; i > k + 1; i--) { // note: do NOT change the (k + 1)
+      e = (d1 << shift) | (d0 >>> rev);
+      B[i] = e + POSITIVIZE[+(e < 0)];
+      d1 = d0;
+      d0 = B[i - 2];
     }
-    // here is the last shift, "i" should be equal with "k"
-    B[i] <<= r;
-    B[i] += POSITIVIZE[+(B[i] < 0)]
+    e = (d1 << shift) | (d0 >>> rev);
+    B[k + 1] = e + POSITIVIZE[+(e < 0)];
+    e = d0 << shift;
+    B[k] = e + POSITIVIZE[+(e < 0)];
   }
   return B;
 }
 
-function _fxbShr(val, B) { // signed values positivized
+function _fxbShr(val, B, top) { // signed values positivized
+  //top = _bsra(B);
   if (val <= 1) {
-    if (val < 0) return _fxbShl(-val, B);
+    if (val < 0) return _fxbShl(-val, B, top, top+1); //note..
+      //.. SHL needs length information, this is the best that we have
     if (!val) return B;
-    if (val == 1) return _fxbShr1_p(B);
+    if (val == 1) return _fxbShr1_p(B, top);
   }
-  var Len = B.length;
-  if (val >= Len << 5) { // array length * 32
+  if (top == 0) { B[0] >>>= val; return B; }
+  var rshifts = (top + 1) << 5;
+  if (val >= rshifts) { // array length * 32
     // if bitshift equal/more than bitswide then clear the array
-    for (var i = 0; i < Len; i++)
-      B[i] = 0;
-    return B;
+    for (var i = 0; i <= top; i++) B[i] = 0; return B;
   }
-  var k = Len - 1; // inititalize k at the first shiftable element
-  var t = val >> 5; // t = how many elements will be cleared
-  if (t) {
-    // move dwords down
-    for (k = 0; k < Len - t; k++)
-      B[k] = B[k + t];
-    // and clear the remain, note that k value is significant.
-    for (var i = k; i < B.length; i++)
-      B[i] = 0;
+  var c = val >>> 5; // t = how many elements will be cleared
+  var i = 0, k = top - c;
+  if (c) {
+    for (i = 0; i < c; i++) B[i] = B[i + c]; // move dwords down
+    for (i = k + 1; i <= top; i++) B[i] = 0; // and clear the remain
+    if (k == 0) { B[0] >>>= val; return B; }
   }
-  // k value should be at the last shiftable element
-  var r = val & 31; // get how much actual shift on 32-bit wide
-  if (r) {
-    var i, d0, d1;
-    var xval = 32 - r; // shiftleft, get Least-S-bits from Most-S-dword
+  var shift = val & 31; // get how much actual shift will take place
+  if (shift) {
+    var rev = 32 - shift; // reverse (shiftleft), get LSb from MSd
+    var d0 = B[0], d1 = B[1]
+    var d0s = d0 >>> shift, d1r = d1 << rev, d0x = d0s | d1r;
     // intentionally left the last shift to simplify calculation
-    for (i = 0; i < k - 1; i++) { // note the (k-1)
-      d0 = B[i] >>> r;
-      d1 = B[i + 1] << xval;
-      d0 |= d1;
-      B[i] = d0 + POSITIVIZE[+(d0 < 0)] // JS special, make it positive
+    for (i = 0; i < k - 1; i++) { // note: do NOT change the (k-1)
+      B[i] = d0x + POSITIVIZE[+(d0x < 0)]; // JS special, make it positive
+      d0 = d1;
+      d1 = B[i + 2];
+      d0s = d0 >>> shift;
+      d1r = d1 << rev;
+      d0x = d0s | d1r;
     }
-    // here is the last shift, "i" should be equal with "k"
-    B[i] >>>= r;
+    B[k - 1] = d0x + POSITIVIZE[+(d0x < 0)];
+    B[k] >>>= shift;
   }
   return B;
 }
 
-function _fxbShl2(val, B0, B1) { // signed values positivized
+
+// *** SHL double buffer ********************************************//
+function _fxbShl2bl(val, B0, B1, top0, top1) { // signed values positivized
+  //top0 = _bsra(B0);
+  //top1 = _bsra(B1);
   if (val <= 1) {
-    if (val < 0) return _fxbShr2(-val, B0, B1);
-    if (val == 1) return _fxbShl12_p(B0, B1);
+    if (val < 0) return _fxbShr2br(-val, B0, B1, top0, top1);
+    if (val == 1) return _fxbShl12_p(B0, B1, top0, top1);
     if (!val) return 0;
   }
-  var r = 0, len0 = B0.length, p0 = len0 << 5;
+  var r = 0, /* len0 = B0.length, */ p0 = len0 << 5;
   if (val < p) {
-    r = B0[len0 - 1] >>> (32 - (val & 31));
-    _fbxShl(val, B0);
+    r = B0[top0] >>> (32 - (val & 31));
+    _fxbShl(val, B0, top0);
   }
   else  {
     val &= p - 1;
-    for (var i = 0; i < Len0; i++)
+    for (var i = 0; i <= top0; i++)
       B0[i] = 0;
   }
-  _fbxShl(val, B1);
+  _fxbShl(val, B1, top1);
   if (r) {
     r |= B[0];
     r += POSITIVIZE[+(r < 0)]
@@ -1133,27 +1267,30 @@ function _fxbShl2(val, B0, B1) { // signed values positivized
   return B1;
 }
 
-function _fxbShr2(val, B0, B1) { // signed values positivized
+// *** double buffer SHR ********************************************//
+function _fxbShr2br(val, B0, B1, top0, top1) { // signed values positivized
+  //top0 = _bsra(B0);
+  //top1 = _bsra(B1);
   if (val <= 1) {
-    if (val < 0) return _fxbShl2(-val, B0, B1);
-    if (val == 1) return _fxbShr12_p(B0, B1);
+    if (val < 0) return _fxbShl2bl(-val, B0, B1, top0, top1);
+    if (val == 1) return _fxbShr12_p(B0, B1, top0, top1);
     if (!val) return 0;
   }
-  var r = 0, len1 = B1.length, p1 = len1 << 5;
+  var r = 0, /* len1 = B1.length, */ p1 = len1 << 5;
   if (val < p) {
     r = B1[0] << (32 - (val & 31));
-    _fbxShr(val, B1);
+    _fxbShr(val, B1);
   }
   else  {
     val &= p - 1;
-    for (var i = 0; i < Len1; i++)
+    for (var i = 0; i <= top1; i++)
       B1[i] = 0;
   }
-  _fbxShr(val, B0);
+  _fxbShr(val, B0);
   if (r) {
-    r |= B0[B0.length - 1];
+    r |= B0[top0];
     r += POSITIVIZE[+(r < 0)]
-    B0[B0.length - 1] = r;
+    B0[top0] = r;
   }
   return B0;
 }
@@ -1182,10 +1319,14 @@ var a = [1,2,4,8,
   0x1000000,0x2000000,0x4000000,0x8000000,
   0x10000000,0x20000000,0x40000000,0x80000000,
   0x100000000], i = 0;
-  if (n == 0) return 32; // return -1
-  if (n & 0x80000000 != 0) return 31;
-  if (n > 0x8000) for (i = 16; i < 32; i++) if (i < a[n]) return  i - 1;
-  for (i = 0; i < 32; i++) if (i < a[n]) return  i - 1;
+  if (n == 0) return -1; //ERROR!
+  // another fuchin ztupix eediots JS precedence
+  // it's hard to not slip over this js idiosynchracy
+  // how on earth do you expect that "!=" got higher precedence than "&"
+  if ((n & 0x80000000) != 0) return 31;
+  if (n > 0x80000) for (i = 20; i < 32; i++) if (n < a[i]) return  i - 1;
+  if (n > 0x800) for (i = 12; i < 32; i++) if (n < a[i]) return  i - 1;
+  for (i = 0; i < 32; i++) if (n < a[i]) return  i - 1;
   return -1; // too high, not an integer!
 }
 
@@ -1281,14 +1422,170 @@ Int64.prototype.div = function(q) { return i64DivMod(this, q, 0); }
 Int64.prototype.mod = function(q) { return i64DivMod(this, q, 1); }
 Int64.prototype.divmod = function(q) { return i64DivMod(this, q, 2); }
 
+
 function _bsra(A) { for (var i = A.length - 1; i >= 0; i--) if (A[i]) return i; }
 
-var _fxbDivMod = function(A, B, opt) { // A,B must be equal in length
+//too much!
+// var fxhexblocker = function (hexstr, blocksize) {
+//   var zeroes = '00000000';
+//   blocksize &= 0x7ffe;
+//   if (blocksize > zeroes.length)
+//     for (var i = block >>> 3; i > 0; i >>>= 1)
+//      zeroes += zeroes;
+//   return zeroes.substr(0, blocksize - ((hexstr.length - 1) % blocksize) + 1) + hexstr;
+//
+// var _fxhexblock8 = function(hexstr)
+//   { return '00000000'.substr(0, 8 - ((hexstr.length - 1) & 7) + 1) + hexstr; }
+// var _fxhexblock4 = function(hexstr)
+//   { return '0000'.substr(0, 4 - ((hexstr.length - 1) & 3) + 1) + hexstr; }
+// var _fxhexblock2 = function(hexstr)
+//   { return (hexstr.length & 1 ? '0' : '') + hexstr; }
+
+var _fxbtoHex = function (B, top) { // hexadecimals value of buffer;
+  //len = len | B.length;
+  //top = _bsra(B);
+  var s = '';
+  for (var i = 0; i <= top; i++) {
+    var hex = (B[top - i]).toString(16);
+    hex = '00000000'.substr(0, 8 - ((hex.length - 1) & 7) + 1) + hex;
+    s += x;
+  }
+  return s;
+}
+
+//var i64Decimals = function(q) { return _fxbtoDecimals([q.lo, q.hi]); }
+//var intxtoDecimals = function (X) { return _fxbtoDecimals(X.items); }
+
+var _fxbMod10r = function (B, top, msb_3, SHIFT) { // returns decimals remainder;
+  //top = _bsra(B); // we don't need length, just r
+  msb_3 = msb | _bsr2(B[top]) - 3;
+  SHIFT = SHIFT | ((top + 1) << 5);
+  _fxbShr(msb_3, B, top);
+
+  var r = B[top];
+  if (r >= 10) a -= 10;
+  for (var i = msb_3; i < SHIFT; i++) {
+    var r = B[top];
+    if (r >= 10) r -= 10;
+  }
+  return r;
+}
+
+var _fxbDivMod10r = function (B, top, msb_3, SHIFT) { // returns decimals remainder;
+  //top = _bra(B); // we don't need length, just r
+  //msb_3 = _bsr2(B[top]) - 3;
+  SHIFT = SHIFT | ((top + 1) << 5);
+  _fxbShr(msb_3, B, top);
+
+  var r = B[top];
+  if (r >= 10) a -= 10;
+  for (var i = msb_3; i < SHIFT; i++) {
+    var r = B[top];
+    if (r >= 10) r -= 10;
+  }
+  return r;
+}
+
+var _fxbtoDecimals = function (B, top) {
+// it tooks 2 seconds for 2048-bits, and 20 seconds for 4096-bits
+// returns decimals string of buffer. In order to reserve resource,
+// B will be destroyed after this long winding recursive operation
+  if (arguments[2] != -99) {
+    B = B.slice(0); // release original B;
+    while (B[B.length - 1] == 0) B.pop();
+    top = B.length - 1;
+    if (top > 128) return 'sorry, too much';
+  }
+  if (top < 0) return '0';
+  var msb = _bsr2(B[top]);
+  if (top < 2)
+    if (top == 0) return '' + B[0];
+    else
+      if (msb < 22) return '' + (B[1] * CAP32 + B[0]);
+
+  var msb2 = 3;
+  var k = msb - msb2;
+
+  B.unshift(0); top ++;
+  var SHIFT = top << 5;
+
+  if (k < 0) _fxbShll(B, -k, top);
+  else _fxbShr(k, B, top);
+  var r = B[top];
+  if (r >= 10) {
+    B[top] -= 10;
+    B[0]++; // BAAD! B[0] |= 1;
+  }
+
+  //for (var i = k; i < SHIFT; i++) {
+  k = 32 - k;
+  while (k < SHIFT - 4) {
+    switch (B[top]) {
+      case 0: _fxbShll(B, 4, top); k += 4; break;
+      case 1: _fxbShll(B, 3, top); k += 3; break;
+      case 2: case 3: _fxbShll(B, 2, top); k += 2; break;
+      default: _fxbShl1_p(B, top); k++; break
+    }
+    r = B[top];
+    if (r >= 10) {
+      B[top] -= 10;
+      B[0]++; // BAAD! B[0] |= 1;
+    }
+  }
+
+  while (k < SHIFT) {
+    k++;
+    _fxbShl1_p(B, top);
+    r = B[top];
+    if (r >= 10) {
+      B[top] -= 10;
+      B[0]++; // BAAD! B[0] |= 1;
+    }
+  }
+
+  B.pop(); top --;
+  if (B[top] == 0) top--;
+
+  return _fxbtoDecimals(B, top, -99) + '' + r;
+}
+
+
+//82345678901231228
+var _fxDectoHex = function (decimals) { // convert decimals to hexs
+  var hexs = '', chunks = decimals.match(/.{15}/g);
+  for (var i = 0; i < chunks.length; i++)
+    hexs += (+chunks).toString(16);
+  //return '00000000'.substr(0, 8 - ((Sx.length - 1) & 7) + 1) + hexs;
+  return hexs;
+}
+
+var _fxbHexsen = function (hexs, B) { // populate B with values;
+  var A = [];
+  B = B | A;
+  hexs = '00000000'.substr(0, 8 - ((hexs.length - 1) & 7) + 1) + hexs;
+  var hexses = hexs.match(/.{8}/g);
+
+  B = [];
+  var len = hexses.length;
+  for (i = 0; i < len; i++)
+    B[i] = +('0x' + hexses[len - i - 1]);
+  return B;
+}
+
+var _fxbAssign = function (decimals, B) { // return B;
+  var hexs = _fxDectoHex(decimals);
+  _fxbHexen(hexs, B);
+ return B;
+}
+
+var _fxbDivMod = function(A, B, opt, len) {
+//  A,B must be equal in length, at least for now.
 //  option 0: quotient in p, 1: remainder in p, 2: return struct div/mod
+  //len = A.length;
   var dp1 = _bsra(A), dp2 = _bsra(B);
   var cmp = _fxbCmp(A, B, bt1, bt2);
 
-  var i, len = A.length, SHIFT = len << 6;
+  var i, SHIFT = len << 5; // *32
 
   var q = [], r = [];
   for (i = 0; i < len; i++) q[i] = 0;
@@ -1314,8 +1611,9 @@ var _fxbDivMod = function(A, B, opt) { // A,B must be equal in length
   // adjust/trim based on most significant dword
   // originally it would be a rightshift with bt1 > bt2
   // watch this! i'm not realy sure p++/p-- direction were correct
-  if (t > 16) { p++; t -= 32; } // too much rightshift, do leftshift instead
-  else if (t < -16) { p--; t += 32; } // do rightshift
+  // - not used anyway, same cost -
+  // if (t > 16) { p--; t -= 32; } // too much rightshift, do leftshift instead
+  // else if (t < -16) { p++; t += 32; } // do rightshift
 
   //for (i = +len - p; i < len + dp2; i++) a[i] = A[i - len + p];
   //for (i = +len - p; i < len; i++) q[i] = A[i - len + p];
@@ -1324,7 +1622,8 @@ var _fxbDivMod = function(A, B, opt) { // A,B must be equal in length
   for (i = 0; i < dp2; i++) r[i] = A[i + p]; // edi:esi = remainder
   for (i = len - p; i < len; i++) q[i] = A[i - len + p]; // edx:eax = quotient
 
-  _fxbShr2(t, q, r);
+  _fxbShr2(t, q, r)
+
   { // do this once first in case r already >= B
     if (_fxbCmp(r, B, dp2, dp2) >= 0) {
       _fxbSub(r, B, dp2, dp2, dp2)
@@ -1392,5 +1691,3 @@ var _toHex32 = function (n) {
 // var _toHex256 = function (E) { return _toHex128(E.r1) + _toHex64(E.r0); }
 // var _toHex512 = function (F) { return _toHex256(F.e1) + _toHex64(F.e0); }
 // var _toHex1024 = function (G) { return _toHex256(G.f1) + _toHex64(G.f0); }
-
-

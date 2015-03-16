@@ -28,6 +28,32 @@ var evalShow = function(val, log) {
 var intx = new Intx(1);
 var prebr = '\n<pre><br>';
 
+function doClick31(log, val) {
+  var s = '';
+  s = '<br><pre>' + s;
+  var i = new Int64(val);
+  s += 'i : '+ i; s+='\n';
+  s += 'hex: '+ i.toHex(); s+='\n';
+  s += 'dec: '+ i.toDecimals(); s+='\n';
+  //var i = new Intx(-1);
+  //var i = new Intx(128);
+  //var i = new Intx(64);
+  //var s = JSON.stringify(i, null, 4);
+  //var s = dump(i) + ' =>' + typeof(i);
+  //s += _dump(Cx,0,0,0,0,' ') + '<br>\n';
+  s += JSON.stringify(i, null, 4) + '<br>\n';
+  s += dump4(i) + '<br>\n';
+  //s += _dump(Cx, '    ', '', '\n') + '<br>\n';
+  //s += JSON.stringify(Cx, null, 4);
+  //s += '\n';
+  //s += '\nlo: ' + i.lo.toString();
+  //s += '\ncf: ' + i.cf;
+  //s += '\nbits: ' + i.bits;
+  //s += '\ncfx: ' + i.cfx;
+  //s += '\ncfg: ' + i.cfg();
+  putLog(log, s);
+}
+
 function doClick32(log, val) {
 var s = '';
   intx = new Intx(val);
@@ -69,7 +95,10 @@ var s = '';
 
 function doClick34(log, val) {
 var s = '';
-  s += intx.items(); s += '\n';
+  s += 'intx: '+ intx; s += '\n';
+  s += 'intx.items: ' + intx.items(); s += '\n';
+  s += 'intx.toDecimals(): ' +  intx.toDecimals(); s += '\n';
+  s += 'dump2(intx):'; s += '\n';
   s += dump2(intx); s += '\n';
   s += dump2(intx.BufX); s += '\n';
 
@@ -94,30 +123,13 @@ var a;
   putLog(log, a);
 }
 
-
-function doClick31(log, val) {
-  //var i = 0;
-  var i = new Int64(val);
-  //var i = new Intx(-1);
-  //var i = new Intx(128);
-  //var i = new Intx(64);
-  //var s = JSON.stringify(i, null, 4);
-  //var s = dump(i) + ' =>' + typeof(i);
-  var s = '';
-  s = '<br><pre>' + s;
-  //s += _dump(Cx,0,0,0,0,' ') + '<br>\n';
-  s += JSON.stringify(i, null, 4) + '<br>\n';
-  s += dump4(i) + '<br>\n';
-  //s += _dump(Cx, '    ', '', '\n') + '<br>\n';
-  //s += JSON.stringify(Cx, null, 4);
-  //s += '\n';
-  //s += '\nlo: ' + i.lo.toString();
-  //s += '\ncf: ' + i.cf;
-  //s += '\nbits: ' + i.bits;
-  //s += '\ncfx: ' + i.cfx;
-  //s += '\ncfg: ' + i.cfg();
+function doClick23(log, val, opt) {
+var s ='', A = eval(val);
+    s += '<br>';
+    s += _fxbtoDecimals(A);
   putLog(log, s);
 }
+
 
 
 
@@ -140,11 +152,15 @@ evals:
 <hr>
 
 <div id=div_2>
-<input size=40 id=ed2_1 value=1234567890>
+<input size=30 id=ed2_1 value=1234567890>
 <button onClick="putLog('span2', _toHex(eval(ed2_1.value),2));">tohex</button> |
 <input size=20 id=ed2_2 value=1234567890>
-<button onClick="dumpres('span2', ed2_2.value, 0)">&nbsp;</button>
-<button onClick="dumpres('span2', ed2_2.value, 1)">&nbsp;</button>
+<button onClick="dumpres('span2', ed2_1.value, 0)">&nbsp;</button>
+<button onClick="dumpres('span2', ed2_2.value, 1)">&nbsp;</button> |
+<!-- input size=30 id=ed2_3 value="[0x10101,0x101101,0x11011011]" -->
+<!-- input size=30 id=ed2_3 value="[0x10,0x100,0x1000]" -->
+<input size=30 id=ed2_3 value="[1000,2000,3000]">
+<button onClick="doClick23('span2', ed2_3.value)">&nbsp;</button>
 <span id=span2></span>
 </div>
 <hr>
@@ -153,8 +169,8 @@ evals:
 i64: <input size=30 id=ed3_1 value="8234567890123456789012345">
 <button onClick="doClick31('span3', ed3_1.value);">1</button>
 <input id="ickDEBUG" type="checkbox" onClick="DEBUG_MODE = -1 * +(ickDEBUG.checked);">debug/random
-<button onClick="doClick32('span3', ed3_2.value);">2</button>
 intx bits: <input size=6 id=ed3_2 value="1000">
+<button onClick="doClick32('span3', ed3_2.value);">2</button>
 ||
 <button onClick="doClick33('span3', ed3_2.value);">3a</button>
 <button onClick="doClick34('span3', ed3_2.value);">3b</button>
