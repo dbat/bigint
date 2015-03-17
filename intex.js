@@ -966,7 +966,7 @@ function _fxbShl1_p(B, top) { // SHL1 with fixed signed values
     d1 = d0;
     d0 = B[i - 2];
     neg = (d0 & 0x80000000) != 0;
-    e = (d1 << 1) | +neg;
+    e = (d1 << 1) | (+neg);
   }
   B[1] = e + POSITIVIZE[+(e < 0)];
   e = d0 << 1;
@@ -1179,17 +1179,19 @@ var Len = B.length;
   }
   var shift = val & 31; // get how much actual shift on 32-bit wide
   if (shift) {
-    var i, d0 = B[top - 1], d1 = B[top];
-    var e, rev = 32 - shift; // shiftright, get Most-S-bits from Least-S-dword
+    var rev = 32 - shift; // shiftright, get Most-S-bits from Least-S-dword
+    var i, d0 = B[top - 1], d1 = B[top],
+      d1a = d1 << shift, d0b = d0 >>> rev, e = d1a | d0b;
     if (Len > top + 1) B[top + 1] = d1 >>> rev;
     // intentionally left the last shift to simplify calculation
     for (i = top; i > k + 1; i--) { // note: do NOT change the (k + 1)
-      e = (d1 << shift) | (d0 >>> rev);
       B[i] = e + POSITIVIZE[+(e < 0)];
       d1 = d0;
       d0 = B[i - 2];
+      d1a = d1 << shift;
+      d0b = d0 >>> rev;
+      e = d1a | d0b;
     }
-    e = (d1 << shift) | (d0 >>> rev);
     B[k + 1] = e + POSITIVIZE[+(e < 0)];
     e = d0 << shift;
     B[k] = e + POSITIVIZE[+(e < 0)];
@@ -1486,16 +1488,21 @@ var _fxbDivMod10r = function (B, top, msb_3, SHIFT) { // returns decimals remain
   return r;
 }
 
-var _fxbtoDecimals = function (B, top) {
-// it tooks 2 seconds for 2048-bits, and 20 seconds for 4096-bits
+var _fxbtoDecimals = function (B, top, SHIFT, itr) {
+// Just give B as an argument, don't fill the other arguments, unless YKWYAD
+// it tooks about 2 and half seconds for 2048-bits, and 20+ seconds for 4096-bits
 // returns decimals string of buffer. In order to reserve resource,
 // B will be destroyed after this long winding recursive operation
-  if (arguments[2] != -99) {
+  if (arguments[4] != -99) {
     B = B.slice(0); // release original B;
-    while (B[B.length - 1] == 0) B.pop();
-    top = B.length - 1;
+    top = B.length;
+    while (top && B[--top] == 0) B.pop();
+    if (top < 1) return B;
     if (top > 128) return 'sorry, too much';
+    SHIFT = (top + 1) << 5;
+    itr = 0;
   }
+
   if (top < 0) return '0';
   var msb = _bsr2(B[top]);
   if (top < 2)
@@ -1506,18 +1513,23 @@ var _fxbtoDecimals = function (B, top) {
   var msb2 = 3;
   var k = msb - msb2;
 
-  B.unshift(0); top ++;
-  var SHIFT = top << 5;
+  B.unshift(0);
+  top++;
 
-  if (k < 0) _fxbShll(B, -k, top);
-  else _fxbShr(k, B, top);
+  // PROLOG
+  if (k < 0)
+    _fxbShll(B, -k, top);
+  else if (k > 0)
+    _fxbShr(k, B, top);
+  
   var r = B[top];
   if (r >= 10) {
-    B[top] -= 10;
-    B[0]++; // BAAD! B[0] |= 1;
+    r -= 10;
+    B[top] = r;
+    B[0]++;
   }
 
-  //for (var i = k; i < SHIFT; i++) {
+  // MAIN DISCOURSE
   k = 32 - k;
   while (k < SHIFT - 4) {
     switch (B[top]) {
@@ -1528,25 +1540,31 @@ var _fxbtoDecimals = function (B, top) {
     }
     r = B[top];
     if (r >= 10) {
-      B[top] -= 10;
-      B[0]++; // BAAD! B[0] |= 1;
+      r -= 10;
+      B[top] = r;
+      B[0]++;
     }
   }
 
+  // EPILOG
   while (k < SHIFT) {
     k++;
     _fxbShl1_p(B, top);
     r = B[top];
     if (r >= 10) {
-      B[top] -= 10;
-      B[0]++; // BAAD! B[0] |= 1;
+      r -= 10;
+      B[top] = r;
+      B[0]++;
     }
   }
 
-  B.pop(); top --;
-  if (B[top] == 0) top--;
+  top --;
+  B.pop();
 
-  return _fxbtoDecimals(B, top, -99) + '' + r;
+  while (B[top] == 0) { SHIFT = top << 5; top--; }
+
+  //if (itr > 1000) return '' +r;
+  return _fxbtoDecimals(B, top, SHIFT, ++itr, -99) + '' + r;
 }
 
 
