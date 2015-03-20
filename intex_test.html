@@ -27,14 +27,133 @@ var evalShow = function(val, log) {
 
 var intx = new Intx(1);
 var prebr = '\n<pre><br>';
+var LF = '\n';
+
+function doClick1t(log, val) {
+//var B = [3732652356,4083651342,443632321,179641156]; // todec was error here
+//var B = [3030199095,3551221731,2760954683,223472211] // todecimals was error here
+var A = [255284623, 1448919663, 2390027020, 2527542813, 3156326699, 3599584769, 219453065, 2442026628, 3581986902, 1687009606, 3330233057, 79210969, 231284723, 3318871656, 2566107969, 3247458664];
+var A_value = '10137749378418255552711265106558240171837832694908300521801440001676725421222852670262068961430021110083808241472913465357449983273752789252934791941543311';
+var B = [2999303840, 2568028571, 4176172428, 1917477583, 3969045716, 934459900, 1073654571, 2381977152, 4290607486, 50382136, 4159278764, 2116906555, 1074972928, 3080630468, 3445333713, 3896005713, 3811381872, 2453415003, 705775572, 1007862983, 4108831014, 2649904197, 3877004836, 3570522908, 1363692924, 3472123156, 3157289580, 2233427780, 1230639803, 3937084162, 1976398868, 2349188659, 373071334, 1588762533, 3423040284, 2759107112, 2471394157, 1264982040, 4056576338, 1846183356, 1101563467, 2402080064, 2520497601, 2639281080, 3987273758, 591751296, 307641842, 2164833970, 1629308087, 2826608631, 1405449626, 2011445876, 881244199, 1327463708, 2398196144, 2473410909, 2647149108, 1263488330, 683110773, 2016882756, 4267409692, 4261404856, 4293065046, 99209531];
+var B_value = '746491143471004999854013597971656478766790773097660881530176639866744356225147317557716968190271866951741902962018420013888618297791585212427869134313630024573375203021025988078273509368610856059701207325370101242934826344862760877214445423962987185509036123863479416720229969310175358942014662698946306316477078883825662147990656300355511330719233700896529715682888321928895775511929118211290469848184676008772485564734905805064304400190264295008653529746598778073073359867719673009056807976514987752535216018257670148487303442299168541927042425815081286940661408554755062526706759131711761559245171196617682173600';
+
+//alert('A: ' + A_value);
+var s = '', d = '', e = '';
+var s1 = '', s2 ='';
+var i, ret = 0;
+  
+      //A = B;
+      //A_value = B_value;
+  
+      s1 = A_value;
+      s2 = _fxbtoDec(A);
+      ret = (s1 == s2);
+      
+      if (!ret)
+        for (var i = 0; i < s1.length - 1; i++)
+            if (s1.charCodeAt(i) !== s2.charCodeAt(i))
+              if (i < s1.length - 1 - 1)  {
+                s1 = s1.substr(0, i) + '|' + s1.substr(i, 1) + '|' + s1.substr(i + 1);
+                s2 = s2.substr(0, i) + '|' + s2.substr(i, 1) + '|' + s2.substr(i + 1);
+                i+=2;
+              }
+  
+      s += 'toDec(A): \t' + s1 + LF;
+      s += 'A_value: \t' + s2 + LF;
+  
+      s += 'result: ' + ret + LF;
+  
+  putLog(log, prebr + s);
+  return;
+var s1 = '', s2 ='';
+var I = new Intx(12);
+var maxiter = 1;
+var k = 0;
+var B = [];
+  while (k++ < maxiter) {
+    for (var i = 0; i < I.bits>>5; i++) {
+      B[i] = (Math.random()*0x100000000)|0;
+      if (B[i] < 0) B[i] += 0x100000000;
+    }
+
+    I.setItems(B);
+    putLog(log, 'reverse mult with toDec.. ' +k);
+    s1 = _fxbtoDec(B);
+    putLog(log, 'bitshift with toDecimals.. '+k);
+    s2 = _fxbtoDecimals(B);
+    putLog(log, 'done iteration: ' + k);
+    if (s1 != s2) break;
+  }
+
+  var result = (s1==s2)
+
+  s += 'iteration: ' + (k-1) + LF; 
+  s += 'B = [' + B + ']' + LF;
+  s += 'bits: ' + I.bits + LF;
+  s += 'toDec(B): '+ s1 + LF;
+  s += 'toDecimals(B): '+ s2 + LF;
+  s += 'result: ' + result + LF;
+  putLog(log, prebr + s);
+};
+
+
+function doClick1t2(log, val) {
+//var I = new Intx(0);
+var maxsize =  1024;
+
+var i, r, i1024 = [], i2048 = [], i4096 = [], i8192 = [], iix = [];
+  for (i = 0; i < maxsize; i++) iix[i] = (Math.random() * CAP32) |0;
+  function getr(bits) {
+    size = bits >>> 5;
+    var r = (Math.random() * (maxsize - size)) |0;
+    return iix.slice(r, r + size);
+  }
+  
+  i512 = getr(512);
+  i1024 = getr(1024);
+  i2048 = getr(2048);
+  i4096 = getr(4096);
+  i8192 = getr(8192);
+
+
+var s = '', s1 = '', s2 = '';
+var t1 = 0, t2 = 0, tr = 0, dt;
+
+  var A = i1024;
+  A = i8192;
+  //A = i4096;
+  //A = i2048;
+  //A = i1024;
+  //A = i512;
+
+  s += 'CALCULATING -- for ' + A.length * 32 + ' bits wide...' + LF;
+  putLog(log, prebr + s);
+  dt = new Date();
+  t1 = new Date().valueOf();
+  s1 = _fxbtoDec(A);
+  t2 = new Date().valueOf();
+  tr = t2 - t1;
+
+  s = '';
+  s += 'bits: ' + A.length * 32 + ' (' + A.length + ' dwords)' + LF;
+  s += 'A = ' + A + LF;
+  s += 'value: ' + s1 + LF;
+  s += 'time: ' + tr/1000 + ' seconds' + LF;
+
+  putLog(log, prebr + s);
+}
+
+
+
 
 function doClick31(log, val) {
-  var s = '';
+  var d, s = '';
   s = '<br><pre>' + s;
   var i = new Int64(val);
   s += 'i : '+ i; s+='\n';
   s += 'hex: '+ i.toHex(); s+='\n';
-  s += 'dec: '+ i.toDecimals(); s+='\n';
+  d = i.toDecimals();
+  s += 'dec (' + d.length + '): ' + d; s+='\n';
   //var i = new Intx(-1);
   //var i = new Intx(128);
   //var i = new Intx(64);
@@ -94,10 +213,36 @@ var s = '';
 }
 
 function doClick34(log, val) {
-var s = '';
+var d, e, f = '', bcd = '', s = '';
+var t1, t2;
+  t1 =  new Date().valueOf();
+  d = intx.toDecimals();
+  t2 =  new Date().valueOf();
+
+  e = intx.items().toString().split(',');
+  var top = e.length - 1;
+  for (var i = 0; i < top; i++) if (+e[i] > 0) e[i] += ' * 2^(32*' + i +') + ';
+  if (+e[top] > 0) e[top] += ' * 2 ^(32*' + top +')';
+
+  e = e.join('');
+  //s += 'dec (' + d.length + '): ' + d; s+='\n';
   s += 'intx: '+ intx; s += '\n';
   s += 'intx.items: ' + intx.items(); s += '\n';
-  s += 'intx.toDecimals(): ' +  intx.toDecimals(); s += '\n';
+
+  var f = 'test71a)';
+  bcd += '### /* debug items for bc: */' + '\n';
+  bcd += 'tes71a = ' + e + '\n';
+  bcd += 'tes71b = ' + d + '\n';
+  bcd += '(tes71a)' + '\n';
+  bcd += '# n2a(tes71a)' + '\n';
+  bcd += '# n2a(tes71b)' + '\n';
+  bcd += 'print "result: ", tes71a == tes71b, "\\n"' + '\n';
+  bcd += ' ###' + '\n';
+
+  s += bcd;
+  s += 'intx.toDecimals: ' +  d; s += '\n';
+ 
+  s += 'intx.toDecimals'  + ' length:' + d.length + ', bits:' + intx.bits + ' (' + intx.bits/32 + ' dwords)' + ', calculation time: ' + ((t2 - t1)/1000) + ' seconds' + LF;
   s += 'dump2(intx):'; s += '\n';
   s += dump2(intx); s += '\n';
   s += dump2(intx.BufX); s += '\n';
@@ -108,13 +253,17 @@ var s = '';
 function doClick35(log, val) {
 var a=1, b=2, c=a+b, d=c*5-2*b+3*a;
 var prebr = '<pre><br>';
-var s = '';
+var d, s = '';
 
+d = intx.toDecimals();
 s += 'var a=1, b=2, c=a+b, d=c*5-2*b+3*a'; s += '\n';
 s += 'a:' + a + ', b:' + b + ', c:' + c + ', d:' + d; s += '\n';
+s += 'bits: '+ intx.bits + "\n";
+s += 'toDecimals (' + d.length + '): ' +  d; s += '\n';
 
   putLog(log, prebr + s);
 }
+
 
 
 function dumpres(log, val, opt) {
@@ -141,8 +290,20 @@ var s ='', A = eval(val);
 evals:
 <input size=20 id=ed1_1 value="(123*456).toString(16)">
 <button onClick="putLog('span1', eval(ed1_1.value));">1</button> |
-<input size=35 id=ed1_2 value="">
+<!--
+<script>
+//123456789101223334444555556789007 = [4249000719, 2380609927, 1046900413, 1558]
+//9876543210123456789098765432101234567890123 = [897664203, 1561724402, 3637354420, 2370275974, 29024];
+//9876543210123456789098765432101234567890123456789012345 = [3789741945, 1190200579, 2185684336, 3883216330, 405135580, 6757805];
+//987654321012345678909876543210123456789012345678901234586790987654310123456789012345 = [1757732729, 1850800741, 2009722734, 2311127617, 405713771, 3834224484, 863833119, 817890511, 8529549];
+//123456789101223334567899 = [3719225307, 2602525045, 6692]
+tes = [1757732729, 1850800741, 2009722734, 2311127617, 405713771, 3834224484, 863833119, 817890511, 8529549];
+</script>
+ -->
+<input size=35 id=ed1_2 value="_fxbtoDec([1757732729, 1850800741, 2009722734, 2311127617, 405713771, 3834224484, 863833119, 817890511, 8529549]);">
 <button onClick="putLog('span1', eval(ed1_2.value));">2</button> |
+<button onClick="doClick1t('span1', ed1_2.value);">t</button> |
+<button onClick="doClick1t2('span1', ed1_2.value);">t2</button> |
 <input size=25 id=ed1_3 value="A={lo:234567890, hi:4456}">
 <button onClick="putLog('span1', eval(ed1_3.value));">3</button>
 <br>
@@ -174,12 +335,12 @@ OK_=3195203477785973856249889003069174709044806393681452180928734438868718766993
 i64: <input size=30 id=ed3_1 value="8234567890123456789012345">
 <button onClick="doClick31('span3', ed3_1.value);">1</button>
 <input id="ickDEBUG" type="checkbox" onClick="DEBUG_MODE = -1 * +(ickDEBUG.checked);">debug/random
-intx bits: <input size=6 id=ed3_2 value="1000">
-<button onClick="doClick32('span3', ed3_2.value);">2</button>
+intx bits: <input size=6 id=ed3_2 value="1013">
+<button onClick="doClick32('span3', ed3_2.value);">init</button>
 ||
 <button onClick="doClick33('span3', ed3_2.value);">3a</button>
 <button onClick="doClick34('span3', ed3_2.value);">3b</button>
-<button onClick="doClick35('span3', ed3_2.value);">5</button>
+<button onClick="doClick35('span3', ed3_2.value);">5</button> ||
 <span id=span3></span>
 </div>
 <hr>
