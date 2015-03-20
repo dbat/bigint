@@ -1,5 +1,6 @@
 "use strict"
 
+
 /*
 Copyright 2003-2014 Adrian H, Ray AF and Raisa NF
 Private property of PT SOFTINDO Jakarta
@@ -34,6 +35,7 @@ var Intx = function(bits) {
   bits &= (MAXBITS << 1) -1; // xtupiz operator precedence!
                              // how come mult lesser than add?
   this.bits = 0;
+  //this.size = 0;
   if (DEBUG_MODE) this.DEBUG = DEBUG_MODE;
   if (DEBUG_MODE & 1) {
     this.debug_depth = 0;
@@ -62,6 +64,7 @@ this.restore = function() { fnRestore(this); } // ask Buffy for values, put them
     this.lo = new Intx(bits >>> 1, _i, mid, _k, _e, _b);
     this.hi = new Intx(bits >>> 1, mid, _j, _k, _e, _b);
     this.bits = this.lo.bits << 1;
+    //this.size = this.bits >>> 5;
   }
   else {
     this.bits = 128;
@@ -115,9 +118,10 @@ var Int64 = function(lo, hi) {
     return (k >>>= 1);
   }
 
-//var i64SetItems = function(B, i, j, q) {
-var i64SetItems = function(B, i, q) { // put/load B[] to items
+var i64Assign = function(q, B, i) { // put/load B[] to items
   i = i|0;
+  if (B.length <= i)
+    return q.Clear();
   var d0 = B[i] & MASK32;
   var d1 = B[i + 1] & MASK32;
   q.sf = +(d1 < 0);
@@ -211,15 +215,25 @@ var intxClear = function(X) {
   return X;
 }
 
-//var intxSetItems = function(B, i, j, X) {
-var intxSetItems = function(B, i, X) { // put/load B[] to items
+//var intxAssign = function(B, i, j, X) {
+var intxAssign = function(X, B, i) { // put/load B[] to items
   i = i |0;
+  if (B.length <= i)
+    return X.Clear();
   var j = X.bits >>> 5;
-  var mid = (i + j) >>> 1;
-  X.lo.setItems(B, i);
-  X.hi.setItems(B, mid);
+  var mid = i + (j >>> 1)
+  X.lo.assign(B, i);
+  X.hi.assign(B, mid);
   return X;
 }
+
+var intxSetValue = function(X, NumberStr) {
+  var B = _fxNumberstoBuf(NumberStr);
+  for (var i = B.length; i < (X.bits >>> 5); i++)
+    B[i] = 0;
+  X.assign(B, 0);
+ }
+
 
 
 // these are functions. not prototypes.
@@ -252,10 +266,12 @@ Int64.prototype.toHex = function(q) { return i64toHex(this); }
 Int64.prototype.toString = function(q) { return i64toHex(this); }
 Int64.prototype.toDecimals = function(q) { return i64toDecimals(this); }
 Int64.prototype.items = function() { return [this.lo, this.hi]; }
-//Int64.prototype.setItems = function(B, i, j) { i64SetItems(B, i, i+2, this); }
-// Buffer might not be at the same size with Int64, hence the index
+
+// Buffer might not be at the same size with Int64, hence the index,
+// it specifies the start position from Buffer to be assigned.
 // If index is not specified, it will be set to 0
-Int64.prototype.setItems = function(B, index) { i64SetItems(B, index, this); }
+Int64.prototype.assign = function(B, index) { i64Assign(this, B, index); }
+Int64.prototype.setValue = function(NumberStr) { intxSetValue(this, NumberStr); }
 
 Intx.prototype.copyto = function(Y) { return intxCopyto(Y, this); }
 Intx.prototype.copyfrom = function(Y) { return intxCopyfrom(Y, this); }
@@ -263,7 +279,7 @@ Intx.prototype.swap = function() { return intxSwap(this); }
 Intx.prototype.clone = function() { return intxClone(this); }
 Intx.prototype.duplex = function() { return intxDuplex(this); }
 Intx.prototype.extend = function() { return intxExtend(this); }
-Intx.prototype.clear = function() { return intxClear(this); }
+Intx.prototype.Clear = function() { return intxClear(this); }
 Intx.prototype.setOdd = function() { return this.lo.setOdd(); }
 Intx.prototype.setSign = function() { return this.hi.setSign(); }
 //Intx.prototype.setCarry = function() { return this.hi.setCarry(); }
@@ -276,10 +292,13 @@ Intx.prototype.toString = function() { return intxtoString(this); }
 Intx.prototype.toDecimals = function() { return intxtoDecimals(this); }
 Intx.prototype.items = function() { return this.lo.items().concat(this.hi.items()); }
 Intx.prototype.enums = function() { return this.bits > 64 ? this.lo.items().concat(this.hi.items()) : []; }
-//Intx.prototype.setItems = function(B, i, j) { return intxSetItems(B, i, j, this); }
-// Buffer might not be at the same size with Intx, hence the index
+//Intx.prototype.Assign = function(B, i, j) { return intxAssign(this, B, i, j); }
+
+// Buffer might not be at the same size with Intx, hence the index,
+// it specifies the start position from Buffer to be assigned.
 // If index is not specified, it will be set to 0
-Intx.prototype.setItems = function(B, index) { return intxSetItems(B, index, this); }
+Intx.prototype.assign = function(B, index) { return intxAssign(this, B, index); }
+Intx.prototype.setValue = function(NumberStr) { intxSetValue(this, NumberStr); }
 
 
 var intxInc1 = function(X) {
@@ -366,16 +385,54 @@ var intxDec = function(val, X) {
     return D;
   }
 
-  function _fxbMul1e2(D, top) {
-    var a, b, c, r = 0;
-    for(var i = 0; i <= top; i++) {
-      //a = D[i];
-      b = D[i] * 100 + r;
+  function _fxbMul1e1p(B, p) {
+  // multiply 10 and add with p. p must not negative.
+  // used for translating decimal to buffer/hex
+    var i, a, b, c, r = 0;
+    var top = B.length -1;
+    // multiplication
+    for(i = 0; i <= top; i++) {
+      b = B[i] * 10 + r;
       c = b & 0xffffffff;
-      D[i] = c + POSITIVIZE[+(c < 0)]
+      B[i] = c + POSITIVIZE[+(c < 0)]
       r = (b / 0x100000000) |0;
     }
-    return D;
+    if(r)
+      B[++top] = r;
+    if (!p)
+      return B;
+    // now addition
+    a = B[0] + p;
+    r = (a >= 0x100000000)
+    if (!r)
+      B[0] = a;
+    else {
+      B[0] = a - 0x100000000;
+      for (i = 1; i <= top; i++) {
+        if (~B[i]) { // not all  bit set
+          B[i]++;
+          r = 0;
+          break;
+        }
+        else // all bit set (-1 in signed int term)
+          B[i] = 0;
+      }
+      if (r)
+        B[i] = 1; // still carry? write over
+    }
+    return B;
+  }
+
+  function _fxbMul1e2(B, top) {
+    var a, b, c, r = 0;
+    for(var i = 0; i <= top; i++) {
+      //a = B[i];
+      b = B[i] * 100 + r;
+      c = b & 0xffffffff;
+      B[i] = c + POSITIVIZE[+(c < 0)]
+      r = (b / 0x100000000) |0;
+    }
+    return B;
   }
 
 function _i32x32(a, b) { // returns 64-bit
@@ -917,7 +974,7 @@ var _fxRestore = function(Bx, i, j, X) { // load BufX{} to items
     _fxRestore(Bx, i, mid, X.lo);
     _fxRestore(Bx, mid, j, X.hi);
   }
-  else { //_fx64SetItems(Bx, i, X); // no sign check
+  else { //_fx64Assign(Bx, i, X); // no sign check
     X.lo = Bx.n[i];
     X.hi = Bx.n[i + 1];
     X.sf = Bx.f[i];
@@ -1861,6 +1918,7 @@ var rcx2r = [[34078,20971], [60293,47185], [20971,7864], [47185,34078], [7864,60
 }
 
 var _fxbtoDecimals = function (B, top, SHIFT, itr) {
+// ** deprecated ** use much faster _fxbtoDec instead;
 // Just give B as an argument, don't fill the other arguments, unless YKWYAD
 // it tooks about 2 and half seconds for 2048-bits, and 20+ seconds for 4096-bits
 // returns decimals string representation of buffer
@@ -1939,33 +1997,60 @@ var _fxbtoDecimals = function (B, top, SHIFT, itr) {
   return _fxbtoDecimals(B, top, SHIFT, ++itr, -99) + '' + r;
 }
 
-
-//82345678901231228
-var _fxDectoHex = function (decimals) { // convert decimals to hexs
-  var hexs = '', chunks = decimals.match(/.{15}/g);
-  for (var i = 0; i < chunks.length; i++)
-    hexs += (+chunks).toString(16);
-  //return '00000000'.substr(0, 8 - ((Sx.length - 1) & 7) + 1) + hexs;
-  return hexs;
+function _validatesnum(snumber, index) {
+  index = index |0;
+  var ValidChars = 'ABCDEFabcdef0123456789';
+  var nums = snumber.split(''), len = nums.length;
+  for (var i = 0; i < len; i++)
+    if (ValidChars.indexOf(nums[i]) < index)
+      nums[i] = '';
+  return nums.join('');
 }
 
-var _fxbHexsen = function (hexs, B) { // populate B with values;
-  var A = [];
-  B = B | A;
-  hexs = '00000000'.substr(0, 8 - ((hexs.length - 1) & 7) + 1) + hexs;
+function validHexStr(snumber) { return _validatesnum(snumber); } 
+function validDecimalStr(snumber) { return _validatesnum(snumber, 10); } 
+
+// accompanion for _fxbtoDecimals, assign decimal string to binary buffer
+var _fxDecimalstoBuf = function(DecimalStr) {
+  DecimalStr = validDecimalStr(DecimalStr);
+  var B = [0], n = +DecimalStr;
+  if (n < CAP53) {
+    B[0] = parseInt(n % CAP32);
+    B[1] = (n / CAP32) | 0;
+    return B;
+  }
+  var decs = DecimalStr.split('');
+  var i = 0, len = decs.length;
+  for (var i = 0; i < len; i++) {
+    n = +decs[i];
+    if (n >= 0 && n <= 9)
+      _fxbMul1e1p(B, n)
+  }
+  return B;
+}
+
+
+// accompanion for _fxbtoDecimals, assign hexstring to binary buffer
+var _fxHexstoBuf = function (HexStr) {
+  HexStr = validHexStr(HexStr);
+  var hexs = '00000000'.substr(0, 8 - (((HexStr.length - 1) % 8) + 1)) + HexStr;
   var hexses = hexs.match(/.{8}/g);
 
-  B = [];
+  var B = [];
   var len = hexses.length;
-  for (i = 0; i < len; i++)
+  for (var i = 0; i < len; i++)
     B[i] = +('0x' + hexses[len - i - 1]);
   return B;
 }
 
-var _fxbAssign = function (decimals, B) { // return B;
-  var hexs = _fxDectoHex(decimals);
-  _fxbHexen(hexs, B);
- return B;
+var _fxNumberstoBuf = function (NumberStr) { // returns B;
+  var n = NumberStr.indexOf('0x');
+  var B = [];
+  if (n < 0)
+    B = _fxDecimalstoBuf(NumberStr);
+  else 
+    B = _fxHexstoBuf(NumberStr.substr(n + 2));
+  return B;
 }
 
 var _fxbDivMod = function(A, B, opt, len) {
