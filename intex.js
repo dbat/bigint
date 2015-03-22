@@ -1578,9 +1578,10 @@ function _bsr2(number, start) {
   exponent range =  0..2^11 = 0..2047 => -1022..1023
   exponent-bias: 1023 (or 2^10 - 1)
 */
+  if (!number) return -1;
   _f642e[0] = number;
   n = ((_f642e.buffer[6] >>> 4) | ((_f642e.buffer[7] & 0x7f) << 4)) - 1023;
-  if (start) return 2 << n;
+  if (start) return 1 << n;
   return n;
 }
 
