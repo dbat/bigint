@@ -100,8 +100,10 @@ var B = [];
 function doClick1t2(log, val) {
 //var I = new Intx(0);
 var maxsize =  1024;
+//var _f642e = new Float64Array(1);
 
-var i, r, i1024 = [], i2048 = [], i4096 = [], i8192 = [], iix = [];
+var i, r, i128 = [], i256 = [], i512 = [],
+  i1024 = [], i2048 = [], i4096 = [], i8192 = [], iix = [];
   for (i = 0; i < maxsize; i++) iix[i] = (Math.random() * CAP32) |0;
   function getr(bits) {
     size = bits >>> 5;
@@ -109,6 +111,8 @@ var i, r, i1024 = [], i2048 = [], i4096 = [], i8192 = [], iix = [];
     return iix.slice(r, r + size);
   }
   
+  i128 = getr(128);
+  i256 = getr(256);
   i512 = getr(512);
   i1024 = getr(1024);
   i2048 = getr(2048);
@@ -121,10 +125,12 @@ var t1 = 0, t2 = 0, tr = 0, dt;
 
   var A = i1024;
   A = i8192;
-  //A = i4096;
-  //A = i2048;
-  //A = i1024;
-  //A = i512;
+  A = i4096;
+  A = i2048;
+  A = i1024;
+  A = i512;
+  A = i256;
+  A = i128;
 
   s += 'CALCULATING -- for ' + A.length * 32 + ' bits wide...' + LF;
   putLog(log, prebr + s);

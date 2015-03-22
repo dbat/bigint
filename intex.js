@@ -20,6 +20,8 @@ All right reserved
   here may not be appropriate and left for further exercise.
 */
 
+var i, j, k, n;
+
 var CAP32 = 0x100000000, CAP16 = 0x10000;
 var CAP31 =  0x80000000;
 var MASK31 =  0x7fffffff;
@@ -357,10 +359,10 @@ var intxDec = function(val, X) {
     if (a1 < 0) a1 += 0x100000000;
 
     var lo = a0 + a1 + r;
-    if (lo > 0x100000000) {
+    if (lo >= 0x100000000) {
       ovr++;
       lo -= 0x100000000;
-      if (lo > 0x100000000) { // r might caused double carry
+      if (lo >= 0x100000000) { // r might caused double carry
         ovr++;
         lo -= 0x100000000;
       }
@@ -595,12 +597,12 @@ Intx.prototype.muld = function(B) { return intxMuld(this, B); };
 var i64svadd = function(A, B) {
   //if (A.bits != B.bits) return A;
   var d0 = A.lo + B.lo;
-  var ovr = +(d0 > CAP32);
+  var ovr = +(d0 >= CAP32);
   d0 &= MASK32;
   var neg = +(d1 < 0);
   d0 += neg * CAP32;
   var d1 = A.hi + B.hi + ovr;
-  ovr = +(d1 > CAP32);
+  ovr = +(d1 >= CAP32);
   d1 &= MASK32;
   neg = +(d1 < 0);
   d1 += neg * CAP32;
@@ -626,12 +628,12 @@ Int64.prototype.svsub = function(A, B) { return this.copyfrom(i64svsub(this, B))
 var i64add = function(p, q) { // (p + q) save to p
   //if (p.bits != q.bits) return A;
   var d0 = p.lo + q.lo;
-  var ovr = +(d0 > CAP32);
+  var ovr = +(d0 >= CAP32);
   d0 &= MASK32;
   var neg = +(d1 < 0);
   d0 += neg * CAP32;
   var d1 = p.hi + q.hi + ovr;
-  ovr = +(d1 > CAP32);
+  ovr = +(d1 >= CAP32);
   d1 &= MASK32;
   neg = +(d1 < 0);
   d1 += neg * CAP32;
@@ -1316,13 +1318,13 @@ var _fxbAddShift = function(B, top) {
 //AddShift([1,2,3,4,5,6,7,8],5);
   var A = B.slice(0);
   A.unshift(A[0]);
-  var a = A[1], b= A[2], c = a+b, r = c > 0x100000000;
+  var a = A[1], b= A[2], c = a+b, r = c >= 0x100000000;
   for (var i = 1; i < top; i++ ){
     A[i] = c - POSITIVIZE[+r];
     a = b;
     b = A[i + 2]
     c = a + b + r;
-    r = c > 0x100000000;
+    r = c >= 0x100000000;
   }
   A[top] = c - POSITIVIZE[+r];
   top++;
@@ -1525,43 +1527,63 @@ function _fxbShr2br(val, B0, B1, top0, top1) { // signed values positivized
 }
 
 // ************************************************************
+//
+//  function _bsr(n, calc) {
+//    if (n < 0 || n > 0x80000000) return calc ? 0x80000000 : 31;
+//    if (n < 2) return calc ? n : n - 1; // n = zero, will return -1
+//    for(var r = 2, i = 2; i < 32; i++) {
+//      r += r;
+//      if (r > n)
+//        return calc ? r / 2 : i - 1;
+//    }
+//    return calc ? 0x40000000 : 30 ;
+//  }
+//
+// function  _bsr2(n, start) {
+// // yet another over optimization
+// // does not allow negative value!
+// var i = 0, i12 = 11, i20 = 19;
+// var a = [1,2,4,8,
+//   0x10,0x20,0x40,0x80,
+//   0x100,0x200,0x400,0x800,
+//   0x1000,0x2000,0x4000,0x8000,
+//   0x10000,0x20000,0x40000,0x80000,
+//   0x100000,0x200000,0x400000,0x800000,
+//   0x1000000,0x2000000,0x4000000,0x8000000,
+//   0x10000000,0x20000000,0x40000000,0x80000000,
+//   0x100000000];
+//   // allow negative, sigh...
+//   if (n < 0) n = (n | 0) + 0x100000000;
+//   if (n < 3) return n - 1;
+//   // another fuchin ztupix eediots JS precedence
+//   // it's hard to not slip over this js idiosynchracy
+//   // how on earth do you expect that "!=" got higher precedence than "&"
+//   if ((n & 0x80000000) != 0) return 31;
+//   if (n > 0x80000) while (++i20 < 32) if (n < a[i20]) return i20 - 1;
+//   if (n > 0x800) while (++i12 < 32) if (n < a[i12]) return  i12 - 1;
+//   while (++i < 32) if (n < a[i]) return  i - 1;
+//   return -1; // too high, not an integer!
+// }
 
-  function _bsr(n, calc) {
-    if (n < 0 || n > 0x80000000) return calc ? 0x80000000 : 31;
-    if (n < 2) return calc ? n : n - 1; // n = zero, will return -1
-    for(var r = 2, i = 2; i < 32; i++) {
-      r += r;
-      if (r > n)
-        return calc ? r / 2 : i - 1;
-    }
-    return calc ? 0x40000000 : 30 ;
-  }
-
-function  _bsr2(n, start) {
-// yet another over optimization
-// does not allow negative value!
-var i = 0, i12 = 11, i20 = 19;
-var a = [1,2,4,8,
-  0x10,0x20,0x40,0x80,
-  0x100,0x200,0x400,0x800,
-  0x1000,0x2000,0x4000,0x8000,
-  0x10000,0x20000,0x40000,0x80000,
-  0x100000,0x200000,0x400000,0x800000,
-  0x1000000,0x2000000,0x4000000,0x8000000,
-  0x10000000,0x20000000,0x40000000,0x80000000,
-  0x100000000];
-  // allow negative, sigh...
-  if (n < 0) n = (n | 0) + 0x100000000;
-  if (n < 3) return n - 1;
-  // another fuchin ztupix eediots JS precedence
-  // it's hard to not slip over this js idiosynchracy
-  // how on earth do you expect that "!=" got higher precedence than "&"
-  if ((n & 0x80000000) != 0) return 31;
-  if (n > 0x80000) while (++i20 < 32) if (n < a[i20]) return i20 - 1;
-  if (n > 0x800) while (++i12 < 32) if (n < a[i12]) return  i12 - 1;
-  while (++i < 32) if (n < a[i]) return  i - 1;
-  return -1; // too high, not an integer!
+var _f642e = new Float64Array(1);
+function _bsr2(number, start) {
+/*
+  7654321076543210765432107654321076543210765432107654321076543210
+         7       6       5       4       3       2       1
+  3210987654321098765432109876543210987654321098765432109876543210
+  6  6       5 5         4         3         2         1         0
+  3----------2---------------------------------------------------0
+  seeeeeeeeeeemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+  exponent = 6:4-7, 7:0-6 = 11 bits
+  exponent range =  0..2^11 = 0..2047 => -1022..1023
+  exponent-bias: 1023 (or 2^10 - 1)
+*/
+  _f642e[0] = number;
+  n = ((_f642e.buffer[6] >>> 4) | ((_f642e.buffer[7] & 0x7f) << 4)) - 1023;
+  if (start) return 2 << n;
+  return n;
 }
+
 
 var i64DivMod = function (p, q, opt) {
 function pv(a) { return a + POSITIVIZE[+(a < 0)]; }
