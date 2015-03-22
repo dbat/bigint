@@ -1,0 +1,1084 @@
+/*
+  Copyright 2003-2014 Adrian H, Ray AF and Raisa NF
+  Private property of PT SOFTINDO Jakarta
+  All right reserved
+
+  type/call "help()" on command prompt to get more information
+*/
+
+define _px32_init() {
+auto i, n, oldscale;
+oldscale = scale; scale = 0;
+
+  cap32 = 2 ^ 32;
+  cap31 = 2 ^ 31;
+  mask32 = cap32 - 1;
+  mask31 = cap31 - 1;
+
+  maxbuflen = 512; /* in dword */
+  topmsd = -1;
+  top = -1;
+
+  positivize[0] = 0;
+  positivize[1] = cap32;
+
+  n = 1;
+  for (i = 0; i < maxbuflen; i++) {
+    d[i] = 0;
+    b[i] = 0;
+    e[i] = 0;
+/* ******************** ********************
+    f[i] = 0;
+    g[i] = 0;
+******************** ******************** */
+    n *= cap32;
+    px32[i + 1] = n;
+    rcpk[i + 1] = ((n * .32) + .5) / 1;
+  }
+  px32[0] = 1;
+  __rcpk[0] = (2^20*.32+.5)/1;
+
+scale = oldscale;
+}; _px32_init = _px32_init();
+
+define getdfold(n) {
+auto ret, p; ret = 1;
+  if (n == 0) return 0;
+  if (n < 1) n = -n;
+  while ((ret < maxbuflen) && (n > px32[ret])) ret = ret + 1;
+  return ret;
+}
+
+define getmsb(n) {
+auto i, k, x;
+/* don't forget, bits are 0-based. */
+  if (n == 0) return -1;
+  if (n < 1) n = -n;
+  k = getdfold(n);
+  i = k * 32;
+  x = px32[k];
+  while (n < x) {
+    i = i - 1;
+    x = x / 2;
+  }
+return i;
+}
+define getbits(n) {
+	return getmsb(n) + 1;
+}
+
+define _bxsra(buf) {
+auto top; top = maxbuflen - 1;
+  if (buf == 1) {
+    top_d = top; while ((top >= 0) && (d[top] == 0)) top = top - 1;
+  } else if (buf == 2) {
+    top_b = top; while ((top >= 0) && (b[top] == 0)) top = top - 1;
+  } else if (buf == 3) {
+    top_e = top; while ((top >= 0) && (e[top] == 0)) top = top - 1;
+/* ******************** ********************
+  } else if (buf == 4) {
+    top_f = top; while ((top >= 0) && (f[top] == 0)) top = top - 1;
+  } else if (buf == 5) {
+    top_g = top; while ((top >= 0) && (g[top] == 0)) top = top - 1;
+******************** ******************** */
+  }
+  return top;
+}
+
+define dsra() {
+	return _bxsra(1);
+}
+define bsra() {
+	return _bxsra(2);
+}
+define esra() {
+	return _bxsra(3);
+}
+/* ******************** ********************
+define fsra() {
+	return _bxsra(4);
+}
+define gsra() {
+	return _bxsra(5);
+}
+******************** ******************** */
+
+/* ******************** ********************
+# # duplicated with bxval
+# define _bxset(n, buf, clearfirst) {
+# auto i, top, _ret;
+#   i = getdfold(n);
+#   top = i - 1;
+#   # if (clearfirst == 1) _bxclear(buf, top, maxbuflen - 1);
+#   while (--i >= 0) {
+#     _ret = n / px32[i];
+#     n = n - _ret * px32[i];
+#     if (buf == 1) { d[i + 1] = _ret;
+#     } else if (buf == 2) { b[i + 1] = _ret;
+#     } else if (buf == 3) { e[i + 1] = _ret;
+#     } else if (buf == 4) { f[i + 1] = _ret;
+#     } else if (buf == 5) { g[i + 1] = _ret;
+#     }
+#   }
+# return top;
+# }
+******************** ******************** */
+
+define n2a(n) {
+auto i, top, ret, tmp[];
+  i = getdfold(n);
+  top = i - 1;
+  while (--i >= 0) {
+    ret = n / px32[i];
+    n = n - ret * px32[i];
+    tmp[i] = ret;
+  }
+  print "(", tmp[0];
+  for (i = 1; i <= top; i++) print ", ", tmp[i];
+  print ")"; return top + 1;
+}
+
+define _bxn2buf(n, buf) {
+auto i, top, _ret;
+/* CAUTION! you may need to clear the prev array first. */
+  i = getdfold(n);
+  top = i - 1;
+  while (--i >= 0) {
+    _ret = n / px32[i];
+    n = n - _ret * px32[i];
+
+    if (buf == 1) { d[i] = _ret;
+    } else if (buf == 2) { b[i] = _ret;
+    } else if (buf == 3) { e[i] = _ret;
+/* ******************** ********************
+    } else if (buf == 4) { f[i] = _ret;
+    } else if (buf == 5) { g[i] = _ret;
+******************** ******************** */
+    }
+  }
+return top + 1;
+}
+define n2bd(n) {
+	return _bxn2buf(n, 1);
+}
+define n2bb(n) {
+	return _bxn2buf(n, 2);
+}
+define n2be(n) {
+	return _bxn2buf(n, 3);
+}
+/* ******************** ********************
+define n2bf(n) {
+	return _bxn2buf(n, 4);
+}
+define n2bg(n) {
+	return _bxn2buf(n, 5);
+}
+******************** ******************** */
+define setd(n) {
+	return _bxn2buf(n, 1);
+}
+define setb(n) {
+	return _bxn2buf(n, 2);
+}
+define sete(n) {
+	return _bxn2buf(n, 3);
+}
+/* ******************** ********************
+define setf(n) {
+	return _bxn2buf(n, 4);
+}
+define setg(n) {
+	return _bxn2buf(n, 5);
+}
+******************** ******************** */
+define _bx2val(buf) {
+auto i, top, _ret;
+  top = _bxsra(buf);
+  if (buf == 1) {
+    _ret = d[0];  for (i = 1; i <= top; i++) _ret += d[i] * px32[i];
+  } else if (buf == 2) {
+    _ret = b[0];  for (i = 1; i <= top; i++) _ret += b[i] * px32[i];
+  } else if (buf == 3) {
+    _ret = e[0];  for (i = 1; i <= top; i++) _ret += e[i] * px32[i];
+/* ******************** ********************
+  } else if (buf == 4) {
+    _ret = f[0];  for (i = 1; i <= top; i++) _ret += f[i] * px32[i];
+  } else if (buf == 5) {
+    _ret = g[0];  for (i = 1; i <= top; i++) _ret += g[i] * px32[i];
+******************** ******************** */
+  }
+  return _ret;
+}
+
+define d2n() {
+	return _bx2val(1);
+}
+define b2n() {
+	return _bx2val(2);
+}
+define e2n() {
+	return _bx2val(3);
+}
+/* ******************** ********************
+define f2n() {
+	return _bx2val(4);
+}
+define g2n() {
+	return _bx2val(5);
+}
+******************** ******************** */
+define _bx2arr(buf) {
+auto i, top;
+  top = _bxsra(buf); print "(";
+  if (buf == 1) {
+    print d[0]; for (i = 1; i <= top; i++) print ", ", d[i];
+  } else if (buf == 2) {
+    print b[0]; for (i = 1; i <= top; i++) print ", ", b[i];
+  } else if (buf == 3) {
+    print e[0]; for (i = 1; i <= top; i++) print ", ", e[i];
+  } else if (buf == 4) {
+/* ******************** ********************
+    print f[0]; for (i = 1; i <= top; i++) print ", ", f[i];
+  } else if (buf == 5) {
+    print g[0]; for (i = 1; i <= top; i++) print ", ", g[i];
+******************** ******************** */
+  }
+  print ")"; return top + 1;
+}
+define d2a() {
+	return _bx2arr(1);
+}
+define b2a() {
+	return _bx2arr(2);
+}
+define e2a() {
+	return _bx2arr(3);
+}
+/* ******************** ********************
+define f2a() {
+	return _bx2arr(4);
+}
+define g2a() {
+	return _bx2arr(5);
+}
+******************** ******************** */
+define _bxclear(buf, start, stop) {
+auto i;
+  for (i = start; i <= stop; i ++) {
+    if (buf == 1) { d[i] = 0;
+    } else if (buf == 2) { b[i] = 0;
+    } else if (buf == 3) { e[i] = 0;
+/* ******************** ********************
+    } else if (buf == 4) { f[i] = 0;
+    } else if (buf == 5) { g[i] = 0;
+******************** ******************** */
+    }
+  }
+  return stop - start + 1;
+}
+define cutd(start) {
+	return _bxclear(1, start, maxbuflen-1);
+}
+define cutb(start) {
+	return _bxclear(2, start, maxbuflen-1);
+}
+define cute(start) {
+	return _bxclear(3, start, maxbuflen-1);
+}
+/* ******************** ********************
+define cutf(start) {
+	return _bxclear(4, start, maxbuflen-1);
+}
+define cutg(start) {
+	return _bxclear(5, start, maxbuflen-1);
+}
+******************** ******************** */
+define cleard() {
+	return _bxclear(1,0,maxbuflen-1);
+}
+define clearb() {
+	return _bxclear(2,0,maxbuflen-1);
+}
+define cleare() {
+	return _bxclear(3,0,maxbuflen-1);
+}
+/* ******************** ********************
+define clearf() {
+	return _bxclear(4,0,maxbuflen-1);
+}
+define clearg() {
+	return _bxclear(5,0,maxbuflen-1);
+}
+******************** ******************** */
+
+define _bxpoke(n, buf, index) {
+auto _ret;
+  if (buf == 1) { _ret = d[index]; d[index] = n;
+  } else if (buf == 2) { _ret = b[index]; b[index] = n;
+  } else if (buf == 3) { _ret = e[index]; e[index] = n;
+/* ******************** ********************
+  } else if (buf == 4) { _ret = f[index]; f[index] = n;
+  } else if (buf == 5) { _ret = g[index]; g[index] = n;
+  }
+******************** ******************** */
+  }
+return _ret;
+}
+define poked(n, index) {
+	return _bxpoke(n, 1, index)
+}
+define pokeb(n, index) {
+	return _bxpoke(n, 2, index)
+}
+define pokee(n, index) {
+	return _bxpoke(n, 3, index)
+}
+/* ******************** ********************
+define pokef(n, index) {
+	return _bxpoke(n, 4, index)
+}
+define pokeg(n, index) {
+	return _bxpoke(n, 5, index)
+}
+******************** ******************** */
+
+define _bxrestore(buf) {
+auto i, max; max = maxbuflen;
+  if (buf == 1) { for (i = 0; i < max; i++) dx[i] = args[i];
+  } else if (buf == 2) { for (i = 0; i < max; i++) bx[i] = args[i];
+  } else if (buf == 3) { for (i = 0; i < max; i++) ex[i] = args[i];
+/* ******************** ********************
+  } else if (buf == 4) { for (i = 0; i < max; i++) fx[i] = args[i];
+  } else if (buf == 5) { for (i = 0; i < max; i++) gx[i] = args[i];
+******************** ******************** */
+  }
+}
+
+define resetd() {
+	shutup = _bxrestore(1);
+}
+define resetb() {
+	shutup = _bxrestore(2);
+}
+define resete() {
+	shutup = _bxrestore(3);
+}
+/* ******************** ********************
+define resetf() {
+	shutup = _bxrestore(4);
+}
+define resetg() {
+	shutup = _bxrestore(5);
+}
+******************** ******************** */
+
+/* ******************** ********************
+# define __args_initcount(count) {
+# auto i, ctr;
+#   ctr = (count - 1) % (maxbuflen - 1);
+#   for (i = ctr + 1; i < maxbuflen; i++)
+#     args[i] = 0;
+# }
+# 
+# define __args_cleanup() {
+# auto i, oldscale; oldscable = scale; scale = 0;
+# # should be called independently: _ret_ = _px32_init();
+#   for (i = 0; i < maxbuflen; i++) {
+#     d[i] = args[i];
+#     b[i] = args[i];
+#     e[i] = args[i];
+#     f[i] = args[i];
+#     g[i] = args[i];
+#   }
+#   topmsd = dsra(maxbuflen - 1);
+#   top = topmsd;
+# scale = oldscale;
+# }
+# 
+# # for values larger than 16 simply enter them manually to variable args[n] #
+# define __args_init_n(n, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7,\
+#   arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15) {
+#   shutup = __args_initcount(n);
+#   d0 = arg0; d1 = arg1; d2 = arg2; d3 = arg3;
+#   d4 = arg4; d5 = arg5; d6 = arg6; d7 = arg7;
+#   d8 = arg8; d9 = arg9; d10 = arg10; d11 = arg11;
+#   d12 = arg12; d13 = arg13; d14 = arg14; d15 = arg15;
+#
+#   # arg0 = arg0; arg1 = arg1; arg2 = arg2; arg3 = arg3;
+#   # arg4 = arg4; arg5 = arg5; arg6 = arg6; arg7 = arg7;
+#   # arg8 = arg8; arg9 = arg9; arg10 = arg10; arg11 = arg11;
+#   # arg12 = arg12; arg13 = arg13; arg14 = arg14; arg15 = arg15;
+# 
+#   args[0] = d0; args[1] = d1; args[2] = d2; args[3] = d3;
+#   args[4] = d4; args[5] = d5; args[6] = d6; args[7] = d7;
+#   args[8] = d8; args[9] = d9; args[10] = d10; args[11] = d11;
+#   args[12] = d12; args[13] = d13; args[14] = d14; args[15] = d15;
+#   shutup = __args_cleanup();
+# }
+# 
+# # for values larger than 16 simply enter them manually to variable args[n] #
+# define args_init16(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7,\
+#   arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15) {
+#   _ret_ = __args_init_n(16, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7,\
+#   arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15);
+# }
+# 
+# define args_init12(arg0, arg1, arg2, arg3,\
+#   arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11) {
+#   _ret_ = __args_init_n(12, arg0, arg1, arg2, arg3,\
+#   arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, 0, 0, 0, 0);
+# }
+# 
+# define args_init10(arg0, arg1, arg2, arg3,\
+#   arg4, arg5, arg6, arg7, arg8, arg9) {
+#   _ret_ = __args_init_n(10, arg0, arg1, arg2, arg3,\
+#   arg4, arg5, arg6, arg7, arg8, arg9, 0, 0, 0, 0, 0, 0);
+# }
+# 
+# define args_init8(arg0, arg1, arg2, arg3,\
+#   arg4, arg5, arg6, arg7) {
+#   _ret_ = __args_init_n(8, arg0, arg1, arg2, arg3,\
+#   arg4, arg5, arg6, arg7, 0,0,0,0, 0,0,0,0);
+# }
+# 
+# define args_init6(arg0, arg1, arg2, arg3, arg4, arg5) {
+#   shutup = __args_init_n(6, arg0, arg1, arg2, arg3,\
+#   arg4, arg5,0,0, 0,0,0,0, 0,0,0,0);
+# }
+# 
+# define args_init4(arg0, arg1, arg2, arg3) {
+#   shutup = __args_init_n(4, arg0, arg1, arg2, arg3, 0,0,0,0, 0,0,0,0, 0,0,0,0);
+# }
+# 
+# define args_init3(arg0, arg1, arg2) {
+#   shutup = __args_init_n(3, arg0, arg1, arg2, 0, 0,0,0,0, 0,0,0,0, 0,0,0,0);
+# }
+# 
+# define args_init2(arg0, arg1) {
+#   shutup = __args_init_n(2, arg0, arg1, 0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0);
+# }
+# 
+# define args_init1(arg0) {
+#   shutup = __args_init_n(1, arg0, 0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0);
+# }
+******************** ******************** */
+
+
+define shr(n, shift) {
+  if (n < 1) {
+    if (n == 0) return n;
+    return shl(n, -shift);
+  }
+  if (shift > maxbuflen * 32) return 0;
+  /* shift = shift % (maxbuflen * 32); */
+  return n / 2 ^ shift;
+}
+
+define shl(n, shift) {
+  if (n < 1) {
+    if (n == 0) return n;
+    return shr(n, -shift);
+  }
+  if (shift > maxbuflen * 32) return 0;
+  shift = shift % (maxbuflen * 32);
+  return n * 2 ^ shift;
+}
+
+define shld(n, shift) {
+  if (n < 1) {
+    if (n == 0) return n;
+    return shr(n, -shift);
+  }
+  if (shift > maxbuflen * 32) return 0;
+  /* shift = shift % (maxbuflen * 32); */
+  return (n * 2 ^ shift) % (px32[_getfold(n)] - 1);
+}
+
+define shlb(n, shift, bits) {
+  if (n < 1) {
+    if (n == 0) return n;
+    return shr(n, -shift);
+  }
+  if (shift > maxbuflen * 32) return 0;
+  if (bits > maxbuflen * 32) return 0;
+  if (bits < 1) return 0;
+  /* shift = shift % (maxbuflen * 32); */
+  return (n * 2 ^ shift) % (2 ^ bits - 1);
+}
+
+/* used only by shl/shrbdesc; */
+define printb() {
+print "B = "; shutup = b2a(); print "\n";
+}
+
+# define _bxshr32_desc(shift) {
+# auto i, _ret_, oldscale, _r, _rx, _d0, _d1, _d0x, _d1r, _dx;
+# oldscable = scale; scale = 0;
+#
+# top = maxbuflen - 1;
+# print "top seek: ", top, ".. ";
+# top = bsra(maxbuflen - 1);
+# print " | using ", top, " as the new top\n\n"
+#
+# /* _ret_ = printb(top); */
+#   shift = shift % 32; rev = 32 - shift;
+#   shift = 2 ^ shift; rev = 2 ^ rev;
+# print "shift: ", getmsb(shift), ", reverse: ", getmsb(rev), "\n";
+#
+#   _d0 = b[0]; _d1 = b[1];
+#   _d0x = (_d0 / shift);          /* >> */
+#   _d1r = (_d1 * rev) % cap32; /* << */
+#   _dx = _d0x + _d1r;
+#
+# print "START -- b[0]/d0: ", _d0, ", b[1]/d1: ", _d1, " -- "
+# print "d0x: ", _d0x, ", d1r: ", _d1r, ", dx: ", _dx, "\n\n"
+#
+#   for (i = 0; i < top - 1; i++) {
+#     _ret_ = printb(top);
+#     b[i] = _dx + positivize[(_dx < 0)];
+#
+#     print "  | b.", i, "/dx = ", _dx, " -- ";
+#     print "d0: ", _d0, ", d1: ", _d1, " | ";
+#     print "d0x: ", _d0x, ", d1r: ", _d1r, " => dx/b.", i, ": ", _dx, "\n";
+#
+#     _d0 = _d1;
+#     _d1 = b[i + 2];
+#     _d0x = (_d0 / shift);          /* >> */
+#     _d1r = (_d1 * rev) % cap32;   /* <<  */
+#     _dx = _d0x + _d1r;
+#
+#     print "  | d0<-d1 = ", _d0, ", d1<-b.", i,"+2 = ", _d1, " | ";
+#     print "d0x=", _d0x, ", d1r=", _d1r, ", => dx=", _dx, "\n"
+#     _ret_ = printb(top); print "\n";
+#   }
+#   print "Out of loop with last i = ", i, "\n"
+#   _ret_ = printb(top);
+#
+#   b[top - 1] = _dx + positivize[(_dx < 0)];
+# _ret_ = printb(top);
+#
+#   b[top] = (b[top] / shift) /* >> r */
+#
+# print "\n"; print "LAST value\n"; _ret_ = printb(top);
+# scale = oldscale;
+# return top;
+# }
+#
+# define _bxshl32_desc(shift, len) {
+# auto i, _ret_, _e, rev, top, k, _d0, _d1, _d1a, _d0b, shift, oldscale;
+# oldscale = scale; scale = 0;
+# k = 0; top = bsra(maxbuflen - 1);
+#
+# /* _ret_ = printb(top); */
+#   /* shiftright, get Most-S-bits from Least-S-dword */
+#   shift = shift % 32; rev = 32 - shift;
+#   shift = 2 ^ shift; rev = 2 ^ rev;
+# print "shift: ", getmsb(shift), ", reverse: ", getmsb(rev), "\n";
+#
+#   _d0 = b[top - 1]; _d1 = b[top];
+#   _d1a = (_d1 * shift) % cap32; _d0b = _d0 / rev;
+#   _e = _d1a + _d0b;
+#
+# print "START -- b[0]/d0: ", _d0, ", b[1]/d1: ", _d1, " -- "
+# print "d1a: ", _d1a, ", d0b: ", _d0b, ", e: ", _e, "\n\n"
+#
+#   if (len > top + 1) { b[top + 1] = _d1 / rev; }
+#   /* intentionally left the last shift to simplify calculation */
+#   /* note: do NOT change the (k + 1) */
+#   for (i = top; i > k + 1; i--) {
+#     _ret_ = printb(top);
+#     b[i] = _e + positivize[(_e < 0)];
+#
+#     print "  | b.", i, "/e = ", _e, " -- ";
+#     print "d0: ", _d0, ", d1: ", _d1, " | ";
+#     print "d1a: ", _d1a, ", d0b: ", _d0b, " => e/b.", i, ": ", _e, "\n";
+#
+#     _d1 = _d0; _d0 = b[i - 2];
+#     _d1a = (_d1 * shift) % cap32;
+#     _d0b = _d0 / rev;
+#     _e = _d1a + _d0b;
+#
+#     print "  | d0<-d1 = ", _d0, ", d1<-b.", i,"-2 = ", _d1, " | ";
+#     print "d1a=", _d1a, ", d0b=", _d0b, ", => e=", _e, "\n"
+#     _ret_ = printb(top); print "\n";
+#
+#   }
+#
+# print "Out of loop with last i = ", i, "\n"
+# _ret_ = printb(top);
+#
+#   b[k + 1] = _e + positivize[(_e < 0)];
+# _ret_ = printb(top);
+#
+#   _e = (_d0 * shift) % cap32;
+#   b[k] = _e + positivize[(_e < 0)];
+#
+# print "\n"; print "LAST value\n"; _ret_ = printb(top);
+# scale = oldscale;
+# if (b[top+1] > 0) return top + 1;
+# return top;
+# }
+
+define _bxpops(n, buf) {
+auto i, top, ret;
+  if (n < 1) return -1;
+  top = _bxsra(buf);
+  if (buf == 1) { ret = d[n - 1]; for (i = 0; i <= top; i++) d[i] = d[i + n];
+  } else if (buf == 2) { ret = b[n - 1]; for (i = 0; i <= top; i++) b[i] = b[i + n];
+  } else if (buf == 3) { ret = e[n - 1]; for (i = 0; i <= top; i++) e[i] = e[i + n];
+/* ******************** ********************
+  } else if (buf == 4) { ret = f[n - 1]; for (i = 0; i <= top; i++) f[i] = f[i + n];
+  } else if (buf == 5) { ret = g[n - 1]; for (i = 0; i <= top; i++) g[i] = g[i + n];
+******************** ******************** */
+  }
+  return ret;
+}
+define _bxpop(buf) {
+  return _bxpops(1, buf)
+}
+define popsd(n) {
+  return _bxpops(n, 1)
+}
+define popsb(n) {
+  return _bxpops(n, 2)
+}
+define popse(n) {
+  return _bxpops(n, 3)
+}
+/* ******************** ********************
+define popsf(n) {
+  return _bxpops(n, 4)
+}
+define popsg(n) {
+  return _bxpops(n, 5)
+}
+******************** ******************** */
+define popd() {
+  return _bxpops(1, 1)
+}
+define popb() {
+  return _bxpops(1, 2)
+}
+define pope() {
+  return _bxpops(1, 3)
+}
+/* ******************** ********************
+define popf() {
+  return _bxpops(1, 4)
+}
+define popg() {
+  return _bxpops(1, 5)
+}
+******************** ******************** */
+
+define _bxpushn(val, buf) {
+auto i, top;
+  top = _bxsra(buf);
+  if (buf == 1) { for (i = top; i > 0; i--) d[i] = d[i - 1]; d[0] = val;
+  } else if (buf == 2) { for (i = top; i > 0; i--) b[i] = b[i - 1]; b[0] = val;
+  } else if (buf == 2) { for (i = top; i > 0; i--) e[i] = e[i - 1]; e[0] = val;
+/* ******************** ********************
+  } else if (buf == 2) { for (i = top; i > 0; i--) f[i] = f[i - 1]; f[0] = val;
+  } else if (buf == 2) { for (i = top; i > 0; i--) g[i] = g[i - 1]; g[0] = val;
+******************** ******************** */
+  }
+  return top;
+}
+define _bxpush(buf) {
+  return _bxpushn(0);
+}
+define pushd() {
+  return _bxpushn(0, 1);
+}
+define pushb() {
+  return _bxpushn(0, 2);
+}
+define pushe() {
+  return _bxpushn(0, 3);
+}
+/* ******************** ********************
+define pushf() {
+  return _bxpushn(0, 4);
+}
+define pushg() {
+  return _bxpushn(0, 5);
+}
+******************** ******************** */
+define pushnd(val) {
+  return _bxpushn(val, 1);
+}
+define pushnb(val) {
+  return _bxpushn(val, 2);
+}
+define pushne(val) {
+  return _bxpushn(val, 3);
+}
+/* ******************** ********************
+define pushnf(val) {
+  return _bxpushn(val, 4);
+}
+define pushng(val) {
+  return _bxpushn(val, 5);
+}
+******************** ******************** */
+
+/* ******************** ********************
+# define bxshl_desc(shift, len) {
+# auto i, c;
+#   if (shift < 0) { return bxshr(shift); }
+#   if (shift == 0) { return b2a(); }
+#   c = shift / 32;
+#   if (c >= maxbuflen) { clearb(); return; }
+#   if (c > 0) for (i = len - 1; i >= c; i--) b[i] = b[i - c];
+#   return _bxshl32_desc(shift % 32, len);
+# }
+# 
+# define bxshr_desc(shift) {
+# auto p, c;
+#   if (shift < 0) { return bxshl(shift, bsra() + 1); }
+#   if (shift == 0) { return b2a(); }
+#   c = shift / 32;
+#   if (c >= maxbuflen) { clearb(); return; }
+#   if (c > 0) for (p = 0; p < len - c; p++) b[p] = b[p + c];
+#   return _bxshr32_desc(shift % 32);
+# }
+******************** ******************** */
+
+/* ******************** ********************
+# define _bx_shr(n, shift, buf) {
+# auto x, ret, oldscale;
+# oldscable = scale; scale = 0;
+#   top = _bxsra(buf);
+#   shutup = _bxn2buf(n, buf);
+#   ret = n / 2 ^ shift;
+# scale = oldscale;
+# return ret;
+# }
+# define shrbd(n, shift) {
+# 	shutup = n2bd(n); shutup = _bx_shr(n, shift, 1)
+# }
+# define shrbb(n, shift) {
+# 	shutup = n2bb(n); shutup = _bx_shr(n, shift, 2)
+# }
+# define shrbe(n, shift) {
+# 	shutup = n2be(n); shutup = _bx_shr(n, shift, 3)
+# }
+# define shrbf(n, shift) {
+# 	shutup = n2bf(n); shutup = _bx_shr(n, shift, 4)
+# }
+# define shrbg(n, shift) {
+# 	shutup = n2bg(n); shutup = _bx_shr(n, shift, 5)
+# }
+******************** ******************** */
+
+define __setrcpk(n) {
+auto oldscala; oldscala=scale; scale=0;
+__rcpk[i] = (2^(i*32)*.32+.5)/1;
+scale=oldscala;
+}
+
+define rcpk(i) {
+auto a; a = i % 2047;
+  if (i > 1000) {
+    print "Factor value too big! You've got to mean something else.\n"
+    if (i != a) { i = a; print "Reduced/truncated to: ", a, "\n"; }
+  }
+  if (__rcpk[i] == 0) _blah_ = __setrcpk(i);
+return __rcpk[i];
+}
+
+define rcpx(n, i) {
+auto a, i, r, x, d;
+    r = n * rcpk(i);
+	print "n: ", n, " = "; d = n2a(n); print "\n"
+	print "size: ", i, " (", i*=32, "-bit), target: ", n%100
+	a = i + 5;
+	a = 2 ^ a;
+	print "\nR: ", r, " = "; d = n2a(r); print " : ", d;
+	print "\ny: ", r /= a, " = ";  d = n2a(r); print " : ", d;
+	print "\nz: ", r *= 100, " = ";  d = n2a(r); print " : ", d;
+    print "\nresult: "
+return n - r
+}
+
+define rcp(n) {
+return rcpx(n, getdfold(n));
+}
+
+define rcpx32(n) {
+return rcpx(n, 1)
+}
+define rcpx64(n) {
+return rcpx(n, 2)
+}
+define rcpx96(n) {
+return rcpx(n, 3)
+}
+define rcpx128(n) {
+return rcpx(n, 4)
+}
+define rcpx160(n) {
+return rcpx(n, 5)
+}
+define rcpx192(n) {
+return rcpx(n, 6)
+}
+define rcpx224(n) {
+return rcpx(n, 7)
+}
+define rcpx256(n) {
+return rcpx(n, 8)
+}
+define rcpx320(n) {
+return rcpx(n, 10)
+}
+define rcpx384(n) {
+return rcpx(n, 12)
+}
+define rcpx448(n) {
+return rcpx(n, 14)
+}
+define rcpx512(n) {
+return rcpx(n, 16)
+}
+define rcpx640(n) {
+return rcpx(n, 20)
+}
+define rcpx960(n) {
+return rcpx(n, 30)
+}
+define rcpx1024(n) {
+return rcpx(n, 32)
+}
+
+define help() {
+print "\n";
+/* ******************** ********************
+print "  Legacy / depreciated:\n";
+print "  __args_initcount(args_count) - internal do not use\n";
+print "  __args_cleanup(args_count) - internal\n";
+print "  __args_init_n(n, args0..args15) - internal\n";
+print "\n";
+print "  Assignments:\n";
+print "  args_init_1(args0): one argument initializer\n";
+print "  args_init_2(args0, args1): two arguments initializer\n";
+print "  ... up to: args_init_16(args0..args15): 16 arguments initalizer\n";
+print "\n";
+******************** ******************** */
+print "  _px32_init(): initialize. should be run first. it's already done.\n";
+print "  Functions:\n";
+print "      Note: argument (buf) below is index number of buffer:\n";
+print "      1: buffer-d, 2: buffer-b, 3: buffer-e, 4: buffer-f, 5: buffer-g\n";
+print "  _bxsra(buf): get the top most significant dword of buffer:\n";
+print "      dsra(), bsra(), esra(), fsra(), gsra()\n";
+print "  _bxn2buf(n, buf): store/convert number to buffer:\n";
+print "      n2bd(n), n2bb(n), n2be(n), n2bf(n), n2bg(n)\n";
+print "      equal with: setd(n), setb(n), sete(n), setf(n), setg(n)\n";
+print "  _bxpoke(n, buf, index): set one specific/individual elemen of buffer:\n";
+print "      poked(n, index), pokeb(n,ix), pokee(n,ix), pokef(n,ix), pokeg(n,ix)\n";
+print "      returns last value before replaced\n";
+print "  _bxpush(buf), _bxpushn(val, buf): push 0 or specified value become item-0:\n";
+print "      pushd(), pushb, pushe(), pushf(), pushg()\n";
+print "      pushnd(val), pushnb(val), pushne(val), pushnf(val), pushng(val)\n";
+print "  _bxpop(buf), _bxpops(count, buf): pops one or specified count from index-0:\n";
+print "      popd(), popb, pope(), popf(), popg()\n";
+print "      popsd(count), popsb(cnt), popse(cnt), popsf(cnt), popsg(cnt)\n";
+print "      returns last value before popped\n";
+print "  _bx2val(buf): get/translate buffer to its' numeric value:\n";
+print "      d2n(), b2n(), e2n(), f2n(), g2n()\n";
+print "  _bx2arr(buf): get/translate buffer to their array presentation:\n";
+print "      d2a(), b2a(), e2a(), f2a(), g2a(), see also: n2a(n), _bx2val()\n";
+print "  _bxrestore(buf): refill/reset buffer with original args[]:\n";
+print "      resetd(), resetb(), resete(), resetf(), resetg()\n";
+print "  _bxclear(buf, start, stop): fill buffer contents with zero:\n";
+print "      cleard(), clearb(), cleare(), clearf(), clearg()\n";
+print "      cut-up from start to top, to cut-down see also: push/pop\n";
+print "      cutd(start), cutb(start), cute(start), cutf(start), cutg(start)\n";
+print "\n";
+print "  getmsb(n): get the most significant bit, 0-based\n";
+print "  getbits(n): get bit-size/length\n";
+print "  getdfold(n): get (hex) number length in dword fold\n";
+print "\n";
+print "  n2a(n): translate number to array of dwords, see also: _bx2arr(buf)\n";
+print "\n";
+print "  Note (for all shift functions): maximum shifts is: ", maxbuflen *32, "\n";
+print "  shl(n, shift), shr(n, shift): arbitrary shift left/right\n";
+print "  shld(n, shift): shift left truncated to it's dwords size/length\n";
+print "  shlb(n, shift, bits): shift left truncated at the specified bits-wide\n";
+print "\n";
+/*
+print "  rcp(n): get/calculate reciprocal value of n\n";
+print "  rcpx(n, size): calculate reciprocal value, force factor for given size\n"
+print "  rcpxSIZE(n): calculate reciprocal value, SIZE in bits\n"
+print "      rcpx32(n), rcpx64(n), rcpx96(n), rcpx128()\n"
+print "      rcpx192(n) rcpx224(n), rcpx256(n), rcpx320(n), rcpx384(n),\n";
+print "      rcpx448(n), rcpx512(n) rcpx640(n), rcpx960(n), rcpx1024(n)\n";
+print "  rcpk(size): get reciprocal factor of given size (in dword/32bits)\n";
+print "\n";
+*/
+print "  help(): this function\n";
+print "";
+}
+
+/* ******************** ********************
+# define set1() {
+# 	shutup = args_init3(1000,2000,3000);
+# }
+# define set01() {
+# 	shutup = args_init4(0, 1000,2000,3000);
+# }
+# 
+# define set2() {
+# auto i;
+******************** ******************** */
+/* ******************** ********************
+#   clearb();
+#   d[0]=1043854253;
+#   d[1]=31688603;
+#   d[2]=3176945672;
+#   d[3]=1147332551;
+#   d[4]=1273901639;
+#   d[5]=3661566430;
+#   d[6]=1074417771;
+#   d[7]=1185166839;
+# 
+# 1043854253 + \
+# 31688603   * 2 ^  32 + \
+# 3176945672 * 2 ^  64 + \
+# 1147332551 * 2 ^  96 + \
+# 1273901639 * 2 ^ 128 + \
+# 3661566430 * 2 ^ 160 + \
+# 1074417771 * 2 ^ 192 + \
+# 1185166839 * 2 ^ 224;
+# d2n=31952034777859738562498890030691747090448063936814521809287344388687187669933;
+******************** ******************** */
+/* ******************** ********************
+# 
+# shutup=args_init8(1043854253,31688603,3176945672,1147332551,1273901639,3661566430,1074417771,1185166839);
+# 
+# d2r=3195203477785973185162491889100310691117147109104480631913168114512118091287131443188687111871669191313;
+# d2n=31952034777859738562498890030691747090448063936814521809287344388687187669933;
+# 
+# }
+# 
+# define set02() {
+# 	shutup=args_init10(0,1043854253,31688603,3176945672,1147332551,1273901639,3661566430,1074417771,1185166839,0);
+# }
+# 
+# define run1() {
+#   shutup = set01();
+#   shutup = shrbdesc(8);
+# }
+# 
+# define run2() {
+#   shutup = set02();
+#   shutup = shrbdesc(27);
+# }
+# 
+# define roll10_init() {
+# auto i;
+# d2n = d2n(); for (i = 0; i < length(d2n); i++) d2n[i] = d2n / 10^i;
+# }
+******************** ******************** */
+
+/* ******************** ********************
+# define roll10(step) {
+# auto i, n, msb, top, shift; i = dsra(); n = d2n();
+#   if (i < 0) { print "ERROR! buffer is empty.\n"; return i; }
+#   if (step < 0)  { print "ERROR! understep.\n"; return step; }
+#   if (n < 10)  { print "ERROR! nothing to do.\n"; return -1; }
+#   if (step >= length(n))  { print "ERROR! overstep.\n"; return length(n) - step - 1; }
+#   if (d2n[0] == 0) roll10_init();
+#   n = d2n[step];
+#   clearb();
+#   top = setb(n * cap32);
+#   n = b[top];
+#   msb = getmsb(n);
+#   shift = msb - 3;
+#   if (shift > 0) {
+#     shutup = bxshr(shift);
+#   } else if (shift < 0) {
+#     shutup = bxshl(-shift, top+1);
+#   }
+# }
+******************** ******************** */
+
+
+scale = 0;
+
+/* *** test values ************************************************* */
+tes = 1000 + 2000 * 2^32 + 3000 * 2^64; #[1000, 2000, 3000];
+tes = 856789989628540027664118924563720739535639476621;
+tes = 123456789101223334567899;  #[3719225307, 2602525045, 6692];
+tes = 9876543210123456789098765432101234567890123;  #[897664203, 1561724402, 3637354420, 2370275974, 29024];
+tes2 = 9876543210123456789098765432101234567890123456789012345;  # [3789741945, 1190200579, 2185684336, 3883216330, 405135580, 6757805]
+
+/* debug items for bc: */
+tes5a = 2999303840 * 2^(32*0) + 2568028571 * 2^(32*1) + 4176172428 * 2^(32*2) + 1917477583 * 2^(32*3) + 3969045716 * 2^(32*4) + 934459900 * 2^(32*5) + 1073654571 * 2^(32*6) + 2381977152 * 2^(32*7) + 4290607486 * 2^(32*8) + 50382136 * 2^(32*9) + 4159278764 * 2^(32*10) + 2116906555 * 2^(32*11) + 1074972928 * 2^(32*12) + 3080630468 * 2^(32*13) + 3445333713 * 2^(32*14) + 3896005713 * 2^(32*15) + 3811381872 * 2^(32*16) + 2453415003 * 2^(32*17) + 705775572 * 2^(32*18) + 1007862983 * 2^(32*19) + 4108831014 * 2^(32*20) + 2649904197 * 2^(32*21) + 3877004836 * 2^(32*22) + 3570522908 * 2^(32*23) + 1363692924 * 2^(32*24) + 3472123156 * 2^(32*25) + 3157289580 * 2^(32*26) + 2233427780 * 2^(32*27) + 1230639803 * 2^(32*28) + 3937084162 * 2^(32*29) + 1976398868 * 2^(32*30) + 2349188659 * 2^(32*31) + 373071334 * 2^(32*32) + 1588762533 * 2^(32*33) + 3423040284 * 2^(32*34) + 2759107112 * 2^(32*35) + 2471394157 * 2^(32*36) + 1264982040 * 2^(32*37) + 4056576338 * 2^(32*38) + 1846183356 * 2^(32*39) + 1101563467 * 2^(32*40) + 2402080064 * 2^(32*41) + 2520497601 * 2^(32*42) + 2639281080 * 2^(32*43) + 3987273758 * 2^(32*44) + 591751296 * 2^(32*45) + 307641842 * 2^(32*46) + 2164833970 * 2^(32*47) + 1629308087 * 2^(32*48) + 2826608631 * 2^(32*49) + 1405449626 * 2^(32*50) + 2011445876 * 2^(32*51) + 881244199 * 2^(32*52) + 1327463708 * 2^(32*53) + 2398196144 * 2^(32*54) + 2473410909 * 2^(32*55) + 2647149108 * 2^(32*56) + 1263488330 * 2^(32*57) + 683110773 * 2^(32*58) + 2016882756 * 2^(32*59) + 4267409692 * 2^(32*60) + 4261404856 * 2^(32*61) + 4293065046 * 2^(32*62) + 99209531 * 2 ^(32*63);
+tes5b = 74649114347100499985401359797165647876679077309766088153017663986674435622514731755771696819027186695174190296201842001388861829779158521242786913431363002457337520302102598807827350936861085605970120732537010124293482634486276087721444542396298718550903612386347941672022996931017535894201466269894630631647707888382566214799065621003555113307192336100896529715682888321928895775511929118211290469848184676008772485564734905805064304400190264295008653529746598778073073359867719673009056807976514987752535216018257670148487303442299168541927042425815081286940661408554755062526706759131711761559245171196617682173600;
+
+/* debug items for bc: */
+tes3a = 255284623 * 2^(32*0) + 1448919663 * 2^(32*1) + 2390027020 * 2^(32*2) + 2527542813 * 2^(32*3) + 3156326699 * 2^(32*4) + 3599584769 * 2^(32*5) + 219453065 * 2^(32*6) + 2442026628 * 2^(32*7) + 3581986902 * 2^(32*8) + 1687009606 * 2^(32*9) + 3330233057 * 2^(32*10) + 79210969 * 2^(32*11) + 231284723 * 2^(32*12) + 3318871656 * 2^(32*13) + 2566107969 * 2^(32*14) + 3247458664 * 2 ^(32*15)
+tes3b = 101377493784182565527112651065582401718378326949083005218014310001676725421222852670262068961430021110083808241472913465357449983273752789252934791941543311
+# n2a(tes71a)
+# n2a(tes71b)
+###
+
+
+tes512=4246654718449167399225911363667306338731358648010680989734462409247870622417117040154772602728983709726138260535163626028092380880
+test1024=15519690151543140272328961646221386680044152755543790747975915548418800175536652805304965269312100887564193006597076074236592122253470007010005104570589079378493738357261961443850283367786392585265818532651941139207149181904284759755494841426759750365055138816036165074955089550612691445921488742426861248544409
+/* *** test values ************************************************** */
+
+
+tes = tes3a; /* test calc, do init/replacement value for tes here */
+
+define tesr0() {
+auto i, j, k, n, top, len;
+# variables used: t, r, r0[], r0s[], p0[];
+t = tes
+len = getdfold(t);
+k = rcpk(len);
+r = t * k;
+
+#_=cleard(); _=clearb(); _=cleare();
+#_=setd(t); _=sete(k); _=setb(r);
+_=cleare(); _=sete(k); 
+
+  /* step0 */
+  for (i = 0; i < len; i++) {
+    r0[i] = t * e[0];
+    r0s[i] = shl(r0[i], i * 32);
+  
+    p0[i] = 0;
+    for(j = 0; j <= i; j++) {
+       p0[i] = p0[i] + r0s[j];
+    }
+  }
+
+}
+
+define tesr1() {
+auto i, j, k, n, top, len;
+# variables used: t, r, r1[], r1s[], p1[];
+t = tes
+len = getdfold(t);
+k = rcpk(len);
+r = t * k;
+
+_=cleare(); _=sete(k); 
+
+  /* step0 */
+  for (i = 0; i < len; i++) {
+    r1[i] = t * e[i]; # the only difference: i, not 0.
+    r1s[i] = shl(r1[i], i * 32);
+  
+    p1[i] = 0;
+    for(j = 0; j <= i; j++) {
+       p1[i] = p1[i] + r1s[j];
+    }
+  }
+
+}
+
+_=help();
