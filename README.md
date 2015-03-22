@@ -16,7 +16,7 @@ JavaScript big integer object example
 Still in work in progress....
 
 debugging helper, bc script: intex.bc
-<code>
+<pre><code>
   _px32_init(): initialize. should be run first. it's already done.
   Functions:
       Note: argument (buf) below is index number of buffer:
@@ -59,4 +59,4 @@ debugging helper, bc script: intex.bc
   shlb(n, shift, bits): shift left truncated at the specified bits-wide
 
   help(): this function
-</code>
+</code></pre>
