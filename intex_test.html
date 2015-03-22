@@ -242,7 +242,7 @@ var t1, t2;
   s += bcd;
   s += 'intx.toDecimals: ' +  d; s += '\n';
  
-  s += 'intx.toDecimals'  + ' length:' + d.length + ', bits:' + intx.bits + ' (' + intx.bits/32 + ' dwords)' + ', calculation time: ' + ((t2 - t1)/1000) + ' seconds' + LF;
+  s += 'intx.toDecimals'  + ' digits:' + d.length + ', bits:' + intx.bits + ' (' + intx.bits/32 + ' dwords)' + ', calculation time: ' + ((t2 - t1)/1000) + ' seconds' + LF;
   s += 'dump2(intx):'; s += '\n';
   s += dump2(intx); s += '\n';
   s += dump2(intx.BufX); s += '\n';

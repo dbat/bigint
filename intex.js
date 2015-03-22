@@ -56,8 +56,8 @@ var Intx = function(bits) {
 var Buffy = {n:[], f:[]}; //numbers[lo,hi,lo,..], flags[zero,neg,zero,..]
 function fnStore(that) { return _fxStore(Buffy, 0, that.bits >>> 5, that); }
 function fnRestore(that) { _fxRestore(Buffy, 0, that.bits >>> 5, that); Buffy = {n:[], f:[]}; }
-this.store = function() { return fnStore(this); } // give intxs values to Buffy
-this.restore = function() { fnRestore(this); } // ask Buffy for values, put them back, kill her after.
+this.store = function() { return fnStore(this); }; // give intxs values to Buffy
+this.restore = function() { fnRestore(this); }; // ask Buffy for values, put them back, kill her after.
 
   if (bits >= 256) {
     var mid = (_i + _j) >>> 1;
@@ -110,13 +110,13 @@ var Int64 = function(lo, hi) {
   this.zf = +nol;
   this.bits = 64; //function() { return 64; };
   return this;
-}
+};
 
   var _fxGetBits = function(bits, minbits) {
     var k = k | 64; k &= -k;
     while (k > 0 && bits >= k) k <<= 1;
     return (k >>>= 1);
-  }
+  };
 
 var i64Assign = function(q, B, i) { // put/load B[] to items
   i = i|0;
@@ -129,13 +129,13 @@ var i64Assign = function(q, B, i) { // put/load B[] to items
   d1 += (d1 < 0) * CAP32;
   q.lo = d0; q.hi = d1; q.cf = 0;
   q.zf = d0 == 0 && d1 == 0;
-}
+};
 
 var i64Clear = function(q) {
   { q.lo = 0; q.hi = 0; }
   { q.cf = 0; q.sf = 0; q.zf = 1; }
   return q;
-}
+};
 
 // set sign flag, used for shift
 // this is not a negate -A = ~(A + 1)
@@ -143,13 +143,13 @@ var i64SetSign = function(q) {
   { q.hi |= BSHL31; q.hi += BSHL32; }
   { q.cf = 0; q.sf = 1; q.zf = 0; }
   return q;
-}
+};
 
 var i64SetOdd = function(q) {
   { q.lo |= 1; if (q.lo < 0) q.lo += BSHL32; }
   { q.cf = 0; q.zf = 0; }
   return q;
-}
+};
 
 //var i64isNeg = function(X) { return X.hi & BSHL31 != 0; }
 //var i64isZero = function(X) { return X.lo == 0 && X.hi == 0; }
@@ -159,61 +159,61 @@ var i64Copyto = function(q, p) { //copy from p to q
   q.lo = p.lo; q.hi = p.hi;
   q.cf = X.cf; q.sf = p.sf; q.zf = p.zf;
   return q;
-}
+};
 
 var i64Copyfrom = function(q, p) { //copy from q to p
   //if (!q.bits || p.bits != q.bits) return p;
   p.lo = Y.lo; p.hi = q.hi;
   p.cf = Y.cf; p.sf = q.sf; p.zf = q.zf;
   return p;
-}
+};
 
 var i64Swap = function(q) {
   var a = q.lo; q.lo = q.hi; q.hi = a;
   q.cf = 0; q.sf = +(a & BSHL31 != 0); q.zf = +(a == 0 && q.lo == 0);
   return q;
-}
+};
 
 var intxCopyto = function(Y, X) { // copy from X to Y
   //if (!Y.bits || X.bits != Y.bits) return Y;
   X.lo.copyto(Y.lo); X.hi.copyto(Y.hi);
   return Y;
-}
+};
 
 var intxCopyfrom = function(Y, X) { // copy from Y to X
   //if (!Y.bits || X.bits != Y.bits) return X;
   X.lo.copyfrom(Y.lo); X.hi.copyfrom(Y.hi);
   return X;
-}
+};
 
 var intxSwap = function(X) {
   var a = X.lo; X.lo = X.hi; X.hi = a; X.cf = 0;
   return X;
-}
+};
 
 var intxClone = function(X) { // create new object
   var Y = new Intx(X.bits);
   return X.copyto(Y);
-}
+};
 
 var intxDuplex = function(a) {
   var Y = new Intx(a.bits + a.bits);
   a.copyto(Y.lo);
   a.copyto(Y.hi);
   return Y;
-}
+};
 
 var intxExtend = function(a) {
   var Y = new Intx(a.bits + a.bits);
   a.copyto(Y.lo);
   return Y;
-}
+};
 
 var intxClear = function(X) {
   X.lo.Clear();
   X.hi.Clear();
   return X;
-}
+};
 
 //var intxAssign = function(B, i, j, X) {
 var intxAssign = function(X, B, i) { // put/load B[] to items
@@ -225,80 +225,80 @@ var intxAssign = function(X, B, i) { // put/load B[] to items
   X.lo.assign(B, i);
   X.hi.assign(B, mid);
   return X;
-}
+};
 
 var intxSetValue = function(X, NumberStr) {
   var B = _fxNumberstoBuf(NumberStr);
   for (var i = B.length; i < (X.bits >>> 5); i++)
     B[i] = 0;
   X.assign(B, 0);
- }
+};
 
 
 
 // these are functions. not prototypes.
 //var intxIsZero = function(X) { return X.hi.isZero() && X.lo.isZero(); }
-var i64toHex = function(q) { return _toHex32(q.hi) + _toHex32(q.lo); }
-var i64toDecimals = function(q) { return _fxbtoDecimals([q.lo, q.hi]); }
-var i64GetItems = function(q) { return A = [q.lo, q.hi]; }
-var intxtoHex = function(X) { return X.hi.toHex() + X.lo.toHex(); }
-var intxtoString = function(X) { return X.hi.toString() + X.lo.toString(); }
-//var intxtoDecimals = function(X) { return _fxbtoDecimals(X.items()); }
-var intxtoDecimals = function(X) { return _fxbtoDec(X.items()); }
-//var intxGetItems = function() { return X.lo.items().push(X.hi.items()); }
+var i64toHex = function(q) { return _toHex32(q.hi) + _toHex32(q.lo); };
+var i64toDecimals = function(q) { return _fxbtoDecimals([q.lo, q.hi]); };
+var i64GetItems = function(q) { return A = [q.lo, q.hi]; };
+var intxtoHex = function(X) { return X.hi.toHex() + X.lo.toHex(); };
+var intxtoString = function(X) { return X.hi.toString() + X.lo.toString(); };
+//var intxtoDecimals = function(X) { return _fxbtoDecimals(X.items()); };
+var intxtoDecimals = function(X) { return _fxbtoDec(X.items()); };
+//var intxGetItems = function() { return X.lo.items().push(X.hi.items()); };
 
 
-Int64.prototype.copyto = function(q) { return i64Copyto(q, this); }
-Int64.prototype.copyfrom = function(q) { return i64Copyfrom(q, this); }
-Int64.prototype.swap = function() { return i64Swap(this); }
-Int64.prototype.clone = function() { return intxClone(this); }
-Int64.prototype.duplex = function() { return intxDuplex(this); }
-Int64.prototype.extend = function() { return intxExtend(this); }
-Int64.prototype.Clear = function() { return i64Clear(this); }
-Int64.prototype.setOdd = function() { return i64SetOdd(this); }
-Int64.prototype.setSign = function() { return i64SetSign(this); }
-//Int64.prototype.setCarry = function(val) { return this.hi.cf = val; }
-Int64.prototype.isNeg = function() { return this.hi & BSHL31 != 0; }
-Int64.prototype.isOdd = function() { return this.lo & 1; }
-Int64.prototype.isZero = function() { return this.lo == 0 && this.hi == 0; }
-Int64.prototype.isCarry = function() { return this.hi.cf; }
-Int64.prototype.toHex = function(q) { return i64toHex(this); }
-Int64.prototype.toString = function(q) { return i64toHex(this); }
-Int64.prototype.toDecimals = function(q) { return i64toDecimals(this); }
-Int64.prototype.items = function() { return [this.lo, this.hi]; }
+Int64.prototype.copyto = function(q) { return i64Copyto(q, this); };
+Int64.prototype.copyfrom = function(q) { return i64Copyfrom(q, this); };
+Int64.prototype.swap = function() { return i64Swap(this); };
+Int64.prototype.clone = function() { return intxClone(this); };
+Int64.prototype.duplex = function() { return intxDuplex(this); };
+Int64.prototype.extend = function() { return intxExtend(this); };
+Int64.prototype.Clear = function() { return i64Clear(this); };
+Int64.prototype.setOdd = function() { return i64SetOdd(this); };
+Int64.prototype.setSign = function() { return i64SetSign(this); };
+//Int64.prototype.setCarry = function(val) { return this.hi.cf = val; };
+Int64.prototype.isNeg = function() { return this.hi & BSHL31 != 0; };
+Int64.prototype.isOdd = function() { return this.lo & 1; };
+Int64.prototype.isZero = function() { return this.lo == 0 && this.hi == 0; };
+Int64.prototype.isCarry = function() { return this.hi.cf; };
+Int64.prototype.toHex = function(q) { return i64toHex(this); };
+Int64.prototype.toString = function(q) { return i64toHex(this); };
+Int64.prototype.toDecimals = function(q) { return i64toDecimals(this); };
+Int64.prototype.items = function() { return [this.lo, this.hi]; };
 
 // Buffer might not be at the same size with Int64, hence the index,
 // it specifies the start position from Buffer to be assigned.
 // If index is not specified, it will be set to 0
-Int64.prototype.assign = function(B, index) { i64Assign(this, B, index); }
-Int64.prototype.setValue = function(NumberStr) { intxSetValue(this, NumberStr); }
+Int64.prototype.assign = function(B, index) { i64Assign(this, B, index); };
+Int64.prototype.setValue = function(NumberStr) { intxSetValue(this, NumberStr); };
 
-Intx.prototype.copyto = function(Y) { return intxCopyto(Y, this); }
-Intx.prototype.copyfrom = function(Y) { return intxCopyfrom(Y, this); }
-Intx.prototype.swap = function() { return intxSwap(this); }
-Intx.prototype.clone = function() { return intxClone(this); }
-Intx.prototype.duplex = function() { return intxDuplex(this); }
-Intx.prototype.extend = function() { return intxExtend(this); }
-Intx.prototype.Clear = function() { return intxClear(this); }
-Intx.prototype.setOdd = function() { return this.lo.setOdd(); }
-Intx.prototype.setSign = function() { return this.hi.setSign(); }
-//Intx.prototype.setCarry = function() { return this.hi.setCarry(); }
-Intx.prototype.isNeg = function() { return this.hi.isNeg(); }
-Intx.prototype.isOdd = function() { return this.lo.isOdd(); }
-Intx.prototype.isZero = function() { return this.lo.isZero() && this.hi.isZero(); }
-Intx.prototype.isCarry = function() { return this.hi.isCarry(); }
-Intx.prototype.toHex = function() { return intxtoHex(this); }
-Intx.prototype.toString = function() { return intxtoString(this); }
-Intx.prototype.toDecimals = function() { return intxtoDecimals(this); }
-Intx.prototype.items = function() { return this.lo.items().concat(this.hi.items()); }
-Intx.prototype.enums = function() { return this.bits > 64 ? this.lo.items().concat(this.hi.items()) : []; }
-//Intx.prototype.Assign = function(B, i, j) { return intxAssign(this, B, i, j); }
+Intx.prototype.copyto = function(Y) { return intxCopyto(Y, this); };
+Intx.prototype.copyfrom = function(Y) { return intxCopyfrom(Y, this); };
+Intx.prototype.swap = function() { return intxSwap(this); };
+Intx.prototype.clone = function() { return intxClone(this); };
+Intx.prototype.duplex = function() { return intxDuplex(this); };
+Intx.prototype.extend = function() { return intxExtend(this); };
+Intx.prototype.Clear = function() { return intxClear(this); };
+Intx.prototype.setOdd = function() { return this.lo.setOdd(); };
+Intx.prototype.setSign = function() { return this.hi.setSign(); };
+//Intx.prototype.setCarry = function() { return this.hi.setCarry(); };
+Intx.prototype.isNeg = function() { return this.hi.isNeg(); };
+Intx.prototype.isOdd = function() { return this.lo.isOdd(); };
+Intx.prototype.isZero = function() { return this.lo.isZero() && this.hi.isZero(); };
+Intx.prototype.isCarry = function() { return this.hi.isCarry(); };
+Intx.prototype.toHex = function() { return intxtoHex(this); };
+Intx.prototype.toString = function() { return intxtoString(this); };
+Intx.prototype.toDecimals = function() { return intxtoDecimals(this); };
+Intx.prototype.items = function() { return this.lo.items().concat(this.hi.items()); };
+Intx.prototype.enums = function() { return this.bits > 64 ? this.lo.items().concat(this.hi.items()) : []; };
+//Intx.prototype.Assign = function(B, i, j) { return intxAssign(this, B, i, j); };
 
 // Buffer might not be at the same size with Intx, hence the index,
 // it specifies the start position from Buffer to be assigned.
 // If index is not specified, it will be set to 0
-Intx.prototype.assign = function(B, index) { return intxAssign(this, B, index); }
-Intx.prototype.setValue = function(NumberStr) { intxSetValue(this, NumberStr); }
+Intx.prototype.assign = function(B, index) { return intxAssign(this, B, index); };
+Intx.prototype.setValue = function(NumberStr) { intxSetValue(this, NumberStr); };
 
 
 var intxInc1 = function(X) {
@@ -307,7 +307,7 @@ var intxInc1 = function(X) {
   X.hi.inc1();
   X.cf = X.hi.cf;
   return X;
-}
+};
 
 var intxDec1 = function(X) {
   X.lo.dec1();
@@ -315,7 +315,7 @@ var intxDec1 = function(X) {
   X.hi.dec1();
   X.cf = X.hi.cf;
   return X;
-}
+};
 
 var intxInc = function(val, X) {
   if (val <= 1) {
@@ -328,7 +328,7 @@ var intxInc = function(val, X) {
   X.hi.inc1;
   X.cf = X.hi.cf;
   return X;
-}
+};
 
 var intxDec = function(val, X) {
   if (val <= 1) {
@@ -341,7 +341,7 @@ var intxDec = function(val, X) {
   X.hi.dec1;
   X.cf = X.hi.cf;
   return X;
-}
+};
 
 // Intx.prototype.inc1 = function() { return intxInc1(this); }
 // Intx.prototype.dec1 = function() { return intxDec1(this); }
@@ -512,7 +512,7 @@ var i64muls = function(A, b) { // returns 128-bit
   var X = new Intx(128);
   var Y = _i64x32(A, b);
   return X.copyfrom(Y);
-}
+};
 
 var i64muld = function(A, B) { // returns 128-bit
   if (B.hi.zf) return i64muls(A, B.lo);
@@ -520,10 +520,10 @@ var i64muld = function(A, B) { // returns 128-bit
   var X = new Intx(128);
   var Y = _i64x64(A, B);
   return X.copyfrom(Y);
-}
+};
 
-Int64.prototype.muls = function(A, b) { return i64muls(this, b); }
-Int64.prototype.muld = function(A, B) { return i64muld(this, B); }
+Int64.prototype.muls = function(A, b) { return i64muls(this, b); };
+Int64.prototype.muld = function(A, B) { return i64muld(this, B); };
 
 /*
 There are 2 types of multiplication, both will be expected to produce
@@ -569,7 +569,7 @@ var intxMuls = function(A, b) {
   //X.hi.lo.copyfrom(Y.lo.hi);
   X.hi.lo = Y.lo.hi; // is it safe?
   return X;
-}
+};
 
 var intxMuld = function(A, B) {
 // mul by FULL bits wide // creates new object
@@ -587,10 +587,10 @@ var intxMuld = function(A, B) {
   Y.lo.hi = Y.lo.lo; // are these safe?
   Y.lo.lo = 0;
   return X.add(Y);
-}
+};
 
-Intx.prototype.muls = function(b) { return intxMuls(this, b); }
-Intx.prototype.muld = function(B) { return intxMuld(this, B); }
+Intx.prototype.muls = function(b) { return intxMuls(this, b); };
+Intx.prototype.muld = function(B) { return intxMuld(this, B); };
 
 var i64svadd = function(A, B) {
   //if (A.bits != B.bits) return A;
@@ -606,7 +606,7 @@ var i64svadd = function(A, B) {
   d1 += neg * CAP32;
   var zero = +(d0 | d1 == 0);
   return {bits: B.bits, lo: d0, hi: d1, sf: neg, cf: ovr, zf: zero};
-}
+};
 
 var i64svsub = function(A, B) {
   //if (A.bits != B.bits) return A;
@@ -618,7 +618,7 @@ var i64svsub = function(A, B) {
   d1 += ovr * CAP32;
   var zero = +(d0 | d1 == 0);
   return {bits: 64, lo: d0, hi: d1, sf: ovr, cf: ovr, zf: zero};
-}
+};
 
 Int64.prototype.svadd = function(A, B) { return this.copyfrom(i64svadd(this, B)); }
 Int64.prototype.svsub = function(A, B) { return this.copyfrom(i64svsub(this, B)); }
@@ -638,7 +638,7 @@ var i64add = function(p, q) { // (p + q) save to p
   var zero = +(d0 == 0 && d1 == 0);
   p.lo = d0; p.hi = d1; p.cf = ovr; p.sf = neg; p.zf = zero;
   return p;
-}
+};
 
 var i64sub = function(p, q) { // (p - q) save to p
   //if (p.bits != q.bits) return A;
@@ -651,7 +651,7 @@ var i64sub = function(p, q) { // (p - q) save to p
   var zero = +(d0 == 0 && d1 == 0);
   p.lo = d0; p.hi = d1; p.cf = ovr; p.sf = neg; p.zf = zero;
   return p;
-}
+};
 
 Int64.prototype.add = function(q) { return i64add(this, q); }
 Int64.prototype.sub = function(q) { return i64sub(this, q); }
@@ -663,7 +663,7 @@ var intxAdd = function(X, Y) { // X + Y, result in X;
   X.cf = X.hi.cf
   X.hi.inc(ovr);
   X.cf = +(X.cf || X.hi.cf);
-}
+};
 
 var intxSub = function(X, Y) { // X - Y, result in X;
   X.lo.sub(Y.lo);
@@ -672,13 +672,13 @@ var intxSub = function(X, Y) { // X - Y, result in X;
   X.cf = X.hi.cf
   X.hi.dec(ovr);
   X.cf = +(X.cf || X.hi.cf);
-}
+};
 
-Intx.prototype.add = function(Y) { return intxAdd(this, Y); }
-Intx.prototype.sub = function(Y) { return intxSub(this, Y); }
+Intx.prototype.add = function(Y) { return intxAdd(this, Y); };
+Intx.prototype.sub = function(Y) { return intxSub(this, Y); };
 
 var _fxbInc1 = function(B, top) {
-var i = 0;
+  var i = 0;
   while (i <= top) {
     if (!~B[i]) B[i] = 0;
     else {
@@ -688,10 +688,10 @@ var i = 0;
     i++;
   }
   return B;
-}
+};
 
 var _fxbDec1 = function(B, top) {
-var i = 0;
+  var i = 0;
   while (i <= top) {
     if (!B[i]) B[i] = 0xffffffff;
     else {
@@ -701,13 +701,13 @@ var i = 0;
     i++;
   }
   return B;
-}
+};
 
 var _fxbInc = function(val, B, top) {
 if (val < 1)
   if (!val) return B;
   else return _fxbDec(-val, B, top);
-var a, i = 1, ovr = 0;
+  var a, i = 1, ovr = 0;
   a = B[0] + val;
   if (a < 0x100000000)
     B[0] = a;
@@ -721,13 +721,13 @@ var a, i = 1, ovr = 0;
       i++;
     }
   return B;
-}
+};
 
 var _fxbDec = function(val, B, top) {
-if (val < 1)
-  if (!val) return B;
-  else return _fxbInc(-val, B, top);
-var a, i = 1;
+  if (val < 1)
+    if (!val) return B;
+    else return _fxbInc(-val, B, top);
+  var a, i = 1;
   a = B[0] - val;
   if (a >= 0)
     B[0] = a;
@@ -741,7 +741,7 @@ var a, i = 1;
     i++;
   }
   return B;
-}
+};
 
 var i64inc = function(val, q) {
   if (val <= 1) {
@@ -764,7 +764,7 @@ var i64inc = function(val, q) {
   q.sf = +(q.hi & CAP31 != 0);
   q.zf = +(q.hi | q.lo == 0)
   return q;
-}
+};
 
 var i64dec = function(val, q) {
   if (val <= 1) {
@@ -784,7 +784,7 @@ var i64dec = function(val, q) {
   q.sf = +(q.hi & CAP31 != 0);
   q.zf = +(q.hi | q.lo == 0)
   return q;
-}
+};
 
 var i64inc1 = function(q) {
   var ovr = +(q.lo == MASK32);
@@ -797,7 +797,7 @@ var i64inc1 = function(q) {
   q.sf = +(q.hi & CAP31 != 0);
   q.zf = +(q.hi | q.lo == 0);
   return q;
-}
+};
 
 var i64dec1 = function(q) {
   var ovr = +(q.lo == 0);
@@ -810,17 +810,17 @@ var i64dec1 = function(q) {
   q.sf = +(q.hi & CAP31 != 0);
   q.zf = +(q.hi | q.lo == 0);
   return q;
-}
+};
 
-Int64.prototype.inc = function(val) { return i64inc(val, this); }
-Int64.prototype.dec = function(val) { return i64dec(val, this); }
-Int64.prototype.shl = function(val) { return i64shl(val, this); }
-Int64.prototype.shr = function(val) { return i64shr(val, this); }
+Int64.prototype.inc = function(val) { return i64inc(val, this); };
+Int64.prototype.dec = function(val) { return i64dec(val, this); };
+Int64.prototype.shl = function(val) { return i64shl(val, this); };
+Int64.prototype.shr = function(val) { return i64shr(val, this); };
 
-Int64.prototype.inc1 = function() { return i64inc1(this); }
-Int64.prototype.dec1 = function() { return i64dec1(this); }
-Int64.prototype.shl1 = function() { return i64shl1(this); }
-Int64.prototype.shr1 = function() { return i64shr1(this); }
+Int64.prototype.inc1 = function() { return i64inc1(this); };
+Int64.prototype.dec1 = function() { return i64dec1(this); };
+Int64.prototype.shl1 = function() { return i64shl1(this); };
+Int64.prototype.shr1 = function() { return i64shr1(this); };
 
 var i64shl1 = function(q) {
   q.cf = +(q.hi & MASK32 < 0);
@@ -832,7 +832,7 @@ var i64shl1 = function(q) {
   q.lo += POSITIVIZE[+(q.lo < 0)];
   q.zf = +(q.hi | q.lo == 0)
   return q;
-}
+};
 
 var i64shr1 = function(q) {
   q.cf = q.lo & 1;
@@ -842,7 +842,7 @@ var i64shr1 = function(q) {
   q.sf = 0;
   q.zf = +(q.hi | q.lo == 0)
   return q;
-}
+};
 
 var i64shl = function(val, q) {
   if (val <= 1) {
@@ -866,7 +866,7 @@ var i64shl = function(val, q) {
   q.sf = (q.hi & CAP31 != 0);
   q.zf = +(q.hi | q.lo == 0)
   return q;
-}
+};
 
 var i64shr = function(val, q) {
   if (val <= 1) {
@@ -889,7 +889,7 @@ var i64shr = function(val, q) {
   q.sf = 0;
   q.zf = +(q.hi | q.lo == 0)
   return q;
-}
+};
 
 var intxShl1 = function(X) {
   X.cf = X.isNeg();
@@ -898,7 +898,7 @@ var intxShl1 = function(X) {
   X.hi.shl1();
   if (ovr) X.hi.setOdd();
   return X;
-}
+};
 
 var intxShr1 = function(X) {
   X.cf = X.lo.isOdd();
@@ -907,7 +907,7 @@ var intxShr1 = function(X) {
   X.hi.shl1();
   if (ovr) X.lo.setSign();
   return X;
-}
+};
 
 var intxShl = function(val, X) {
   var Bx = X.store();
@@ -915,7 +915,7 @@ var intxShl = function(val, X) {
   _fxSetf(Bx);
   X.restore();
   return X;
-}
+};
 
 var intxShr = function(val, X) {
   var Bx = X.store();
@@ -923,17 +923,17 @@ var intxShr = function(val, X) {
   _fxSetf(Bx);
   X.restore();
   return X;
-}
+};
 
-Intx.prototype.inc = function(val) { return intxInc(val, this); }
-Intx.prototype.dec = function(val) { return intxDec(val, this); }
-Intx.prototype.shl = function(val) { return intxShl(val, this); }
-Intx.prototype.shr = function(val) { return intxShr(val, this); }
+Intx.prototype.inc = function(val) { return intxInc(val, this); };
+Intx.prototype.dec = function(val) { return intxDec(val, this); };
+Intx.prototype.shl = function(val) { return intxShl(val, this); };
+Intx.prototype.shr = function(val) { return intxShr(val, this); };
 
-Intx.prototype.inc1 = function() { return intxInc1(this); }
-Intx.prototype.dec1 = function() { return intxDec1(this); }
-Intx.prototype.shl1 = function() { return intxShl1(this); }
-Intx.prototype.shr1 = function() { return intxShr1(this); }
+Intx.prototype.inc1 = function() { return intxInc1(this); };
+Intx.prototype.dec1 = function() { return intxDec1(this); };
+Intx.prototype.shl1 = function() { return intxShl1(this); };
+Intx.prototype.shr1 = function() { return intxShr1(this); };
 
 
 // ************************************************************
@@ -966,7 +966,7 @@ var _fxStore = function(Bx, i, j, X) { // save items to BufX{}
     Bx.f[i + 1] = X.zf;
   }
   return Bx;
-}
+};
 
 var _fxRestore = function(Bx, i, j, X) { // load BufX{} to items
   if (X.bits > 64) {
@@ -982,7 +982,7 @@ var _fxRestore = function(Bx, i, j, X) { // load BufX{} to items
     X.cf = 0;
   }
   return Bx;
-}
+};
 
 function _fxSanitize(Bx) {
   for (var i = 0; i < Bx.n.length; i += 2) {
@@ -996,7 +996,7 @@ function _fxSanitize(Bx) {
     Bx.n[i + 1] = e + POSITIVIZE[+N];
     Bx.n[i] = d + POSITIVIZE[+(d < 0)];
   }
-}
+};
 
 function _fxPositivize(B) {
   var d = 0;
@@ -1004,7 +1004,7 @@ function _fxPositivize(B) {
     d = B[i] & MASK32;
     B[i] = d + POSITIVIZE[+(d < 0)];
   }
-}
+};
 
 function _fxSetf(Bx) {
   for (var i = 0; i < Bx.n.length; i += 2) {
@@ -1012,7 +1012,7 @@ function _fxSetf(Bx) {
     BX.f[i] = +(e < 0);
     BX.f[i + 1] = +(d == 0 && e == 0);
   }
-}
+};
 
 // function _fxbShl1_OLD(B) {
 //   var Len = B.length - 1, ovr = (B[len] & 0x80000000) != 0;
@@ -1328,7 +1328,7 @@ var _fxbAddShift = function(B, top) {
   top++;
   A[top] += r;
   return A;
-}
+};
 
 function _fxbAdd(A, B, top1, top2) { // A + B, result svaed in A;
   // no val check, MUST be all positive
@@ -1649,11 +1649,11 @@ function pv(a) { return a + POSITIVIZE[+(a < 0)]; }
     }
   }
   return {q:[si, di], r:[ax, dx]};
-}
+};
 
-Int64.prototype.div = function(q) { return i64DivMod(this, q, 0); }
-Int64.prototype.mod = function(q) { return i64DivMod(this, q, 1); }
-Int64.prototype.divmod = function(q) { return i64DivMod(this, q, 2); }
+Int64.prototype.div = function(q) { return i64DivMod(this, q, 0); };
+Int64.prototype.mod = function(q) { return i64DivMod(this, q, 1); };
+Int64.prototype.divmod = function(q) { return i64DivMod(this, q, 2); };
 
 
 function _bsra(A) { for (var i = A.length - 1; i >= 0; i--) if (A[i]) return i; }
@@ -1684,7 +1684,7 @@ var _fxbtoHex = function (B, top) { // hexadecimals value of buffer;
     s += x;
   }
   return s;
-}
+};
 
 //var i64Decimals = function(q) { return _fxbtoDecimals([q.lo, q.hi]); }
 //var intxtoDecimals = function (X) { return _fxbtoDecimals(X.items); }
@@ -1702,7 +1702,7 @@ var _fxbMod10r = function (B, top, msb_3, SHIFT) { // returns decimals remainder
     if (r >= 10) r -= 10;
   }
   return r;
-}
+};
 
 var _fxbDivMod10r = function (B, top, msb_3, SHIFT) { // returns decimals remainder;
   //top = _bra(B); // we don't need length, just r
@@ -1717,7 +1717,7 @@ var _fxbDivMod10r = function (B, top, msb_3, SHIFT) { // returns decimals remain
     if (r >= 10) r -= 10;
   }
   return r;
-}
+};
 
 /* ********************************************************************* */
 // buffer/continuous bits to decimals conversion. extensively optimized.
@@ -1915,7 +1915,7 @@ var rcx2r = [[34078,20971], [60293,47185], [20971,7864], [47185,34078], [7864,60
   }
 
   return _fxbtoDec(B, top, method, strn, ++itr, -99) + strn[r + 10];
-}
+};
 
 var _fxbtoDecimals = function (B, top, SHIFT, itr) {
 // ** deprecated ** use much faster _fxbtoDec instead;
@@ -1995,7 +1995,7 @@ var _fxbtoDecimals = function (B, top, SHIFT, itr) {
 
   //if (itr > 1000) return '' +r;
   return _fxbtoDecimals(B, top, SHIFT, ++itr, -99) + '' + r;
-}
+};
 
 function _validatesnum(snumber, index) {
   index = index |0;
@@ -2027,7 +2027,7 @@ var _fxDecimalstoBuf = function(DecimalStr) {
       _fxbMul1e1p(B, n)
   }
   return B;
-}
+};
 
 
 // accompanion for _fxbtoDecimals, assign hexstring to binary buffer
@@ -2041,7 +2041,7 @@ var _fxHexstoBuf = function (HexStr) {
   for (var i = 0; i < len; i++)
     B[i] = +('0x' + hexses[len - i - 1]);
   return B;
-}
+};
 
 var _fxNumberstoBuf = function (NumberStr) { // returns B;
   var n = NumberStr.indexOf('0x');
@@ -2051,7 +2051,7 @@ var _fxNumberstoBuf = function (NumberStr) { // returns B;
   else 
     B = _fxHexstoBuf(NumberStr.substr(n + 2));
   return B;
-}
+};
 
 var _fxbDivMod = function(A, B, opt, len) {
 //  A,B must be equal in length, at least for now.
@@ -2121,7 +2121,7 @@ var _fxbDivMod = function(A, B, opt, len) {
     case 2: return {q: q.slice(0), r: r.slice(0)};
   }
 
-}
+};
 
 var intxDivMod = function(X, Y, opt) {
   if (Y.bits != X.bits) return X;
@@ -2129,11 +2129,11 @@ var intxDivMod = function(X, Y, opt) {
   var B = Y.store();
   opt = opt | 0;
   return _fxbDivMod(A, B, opt);
-}
+};
 
-Intx.prototype.div = function(Y) { return intxDivMod(this, Y, 0); }
-Intx.prototype.mod = function(Y) { return intxDivMod(this, Y, 1); }
-Intx.prototype.divmod = function(Y) { return intxDivMod(this, Y, 2); }
+Intx.prototype.div = function(Y) { return intxDivMod(this, Y, 0); };
+Intx.prototype.mod = function(Y) { return intxDivMod(this, Y, 1); };
+Intx.prototype.divmod = function(Y) { return intxDivMod(this, Y, 2); };
 
 // ************************************************************
 
@@ -2146,7 +2146,7 @@ var _toHex = function (n, block) {
    // var re = new RegExp('.{' + block + '}', 'g');
    // s = s.match(re).join(':');
    return s;
-}
+};
 
 var _toHex32 = function (n) {
    var z = '00000000';
@@ -2157,7 +2157,7 @@ var _toHex32 = function (n) {
    var k =  (block - 1) - (s.length - 1) % block;
    s = z.substr(0, k) + s;
    return s;
-}
+};
 
 // left over, not used
 // var _toHex64 = function (q) { return _toHex32(q.hi) + _toHex32(q.lo & MASK32); }
