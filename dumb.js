@@ -1,5 +1,10 @@
 "use strict";
 
+var LF = '\n';
+var LF2 = LF + LF;
+var TAB = '\t';
+var s = '', s1 ='', s2 = '';
+
   function _saniter(str) {
   // replace symbols and special chars
     var e = str.split('');
@@ -103,4 +108,16 @@ function dump(object, inden, lf, lm, nquot, spc) {
   if (typeof object === 'object') s = '{\n' + s + '\n}'
   return (s);
 }
+
+function gete(id)  { return window.document.getElementById(id); }
+function vid(id) { return (typeof id === 'string') ? gete(id) : id; }
+//function vlogs(log) { return vid(log).innerHTML; }
+
+function getVal(id)  { return vid(id).value; }
+function getInt(id) { return parseInt(getVal(id)); }
+function putVal(id, val)  { vid(id).value = val; }
+
+function putLog(log, S) { vid(log).innerHTML = S; }
+function addLog(log, S) { vid(log).innerHTML += S; }
+var evalShow = function(log, value) { vid(log).innerHTML = value; }
 

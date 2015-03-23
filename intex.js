@@ -18,6 +18,12 @@ All right reserved
   --
   I used to speak in assembly x86, the optimisation applied
   here may not be appropriate and left for further exercise.
+  --
+
+  sigh, we should have rewritten this with Uint array instead :(
+  though it would break support for older browser, this one
+  is tested fine even on granny's firefox 3.6
+
 */
 
 var i, j, k, n;
@@ -1527,46 +1533,47 @@ function _fxbShr2br(val, B0, B1, top0, top1) { // signed values positivized
 }
 
 // ************************************************************
-//
-//  function _bsr(n, calc) {
-//    if (n < 0 || n > 0x80000000) return calc ? 0x80000000 : 31;
-//    if (n < 2) return calc ? n : n - 1; // n = zero, will return -1
-//    for(var r = 2, i = 2; i < 32; i++) {
-//      r += r;
-//      if (r > n)
-//        return calc ? r / 2 : i - 1;
-//    }
-//    return calc ? 0x40000000 : 30 ;
-//  }
-//
-// function  _bsr2(n, start) {
-// // yet another over optimization
-// // does not allow negative value!
-// var i = 0, i12 = 11, i20 = 19;
-// var a = [1,2,4,8,
-//   0x10,0x20,0x40,0x80,
-//   0x100,0x200,0x400,0x800,
-//   0x1000,0x2000,0x4000,0x8000,
-//   0x10000,0x20000,0x40000,0x80000,
-//   0x100000,0x200000,0x400000,0x800000,
-//   0x1000000,0x2000000,0x4000000,0x8000000,
-//   0x10000000,0x20000000,0x40000000,0x80000000,
-//   0x100000000];
-//   // allow negative, sigh...
-//   if (n < 0) n = (n | 0) + 0x100000000;
-//   if (n < 3) return n - 1;
-//   // another fuchin ztupix eediots JS precedence
-//   // it's hard to not slip over this js idiosynchracy
-//   // how on earth do you expect that "!=" got higher precedence than "&"
-//   if ((n & 0x80000000) != 0) return 31;
-//   if (n > 0x80000) while (++i20 < 32) if (n < a[i20]) return i20 - 1;
-//   if (n > 0x800) while (++i12 < 32) if (n < a[i12]) return  i12 - 1;
-//   while (++i < 32) if (n < a[i]) return  i - 1;
-//   return -1; // too high, not an integer!
-// }
+
+function _bsr(n, calc) { // naive
+  if (n < 0 || n > 0x80000000) return calc ? 0x80000000 : 31;
+  if (n < 2) return calc ? n : n - 1; // n = zero, will return -1
+  for(var r = 2, i = 2; i < 32; i++) {
+    r += r;
+    if (r > n)
+      return calc ? r / 2 : i - 1;
+  }
+  return calc ? 0x40000000 : 30 ;
+}
+
+function  _bsr2(n, start) {
+// yet another over optimization
+// does not allow negative value!
+var i = 0, i12 = 11, i20 = 19;
+var a = [1,2,4,8,
+  0x10,0x20,0x40,0x80,
+  0x100,0x200,0x400,0x800,
+  0x1000,0x2000,0x4000,0x8000,
+  0x10000,0x20000,0x40000,0x80000,
+  0x100000,0x200000,0x400000,0x800000,
+  0x1000000,0x2000000,0x4000000,0x8000000,
+  0x10000000,0x20000000,0x40000000,0x80000000,
+  0x100000000];
+  // allow negative, sigh...
+  if (n < 0) n = (n | 0) + 0x100000000;
+  if (n < 3) return n - 1;
+  // another fuchin ztupix eediots JS precedence
+  // it's hard to not slip over this js idiosynchracy
+  // how on earth do you expect that "!=" got higher precedence than "&"
+  if ((n & 0x80000000) != 0) return 31;
+  if (n > 0x80000) while (++i20 < 32) if (n < a[i20]) return i20 - 1;
+  if (n > 0x800) while (++i12 < 32) if (n < a[i12]) return  i12 - 1;
+  while (++i < 32) if (n < a[i]) return  i - 1;
+  return -1; // too high, not an integer!
+}
+
 
 var _f642e = new Float64Array(1);
-function _bsr2(number, start) {
+function _bsr3(number, start) { // new browser only
 /*
   7654321076543210765432107654321076543210765432107654321076543210
          7       6       5       4       3       2       1

@@ -1,4 +1,3 @@
-<!doctype html>
 <html lang=en>
 <head><title>walah! #1</title>
 <style>
@@ -9,9 +8,9 @@ hr { color:lightgray; }
 button { height:1.72em; }
 button .bt2 { width:16px; height:20px; }
 </style>
-<script src=intex.js></script>
-<script src=dumb.js></script>
-<script>
+<script type="text/javascript" src=intex.js></script>
+<script type="text/javascript" src=dumb.js></script>
+<script type="text/javascript">
 function gete(id)  { return document.getElementById(id); }
 function getVal(id)  { return gete(id).value; }
 function getInt(id) { return parseInt(getVal(id)); }
@@ -20,7 +19,7 @@ function getLog(log) { return gete(log).innerHTML; }
 function putLog(log, S) { gete(log).innerHTML = S; }
 function addLog(log, S) { var e = gete(log); e.innerHTML += S; }
 
-var evalShow = function(val, log) {
+var evalShow = function(log, val) {
   var S = eval(val);
   putLog(log, S);
 }
@@ -246,7 +245,7 @@ var t1, t2;
   bcd += ' ###' + '\n';
 
   s += bcd;
-  s += 'intx.toDecimals: ' +  d; s += '\n';
+  s += 'intx.toDecimals: ' +  'tes71b'; s += '\n';
  
   s += 'intx.toDecimals'  + ' digits:' + d.length + ', bits:' + intx.bits + ' (' + intx.bits/32 + ' dwords)' + ', calculation time: ' + ((t2 - t1)/1000) + ' seconds' + LF;
   s += 'dump2(intx):'; s += '\n';
@@ -294,7 +293,7 @@ var s ='', A = eval(val);
 
 <div id=div_1 class="nowr">
 evals:
-<input size=20 id=ed1_1 value="(123*456).toString(16)">
+<input size=20 id="ed1_1" value="(123*456).toString(16)">
 <button onClick="putLog('span1', eval(ed1_1.value));">1</button> |
 <!--
 <script>
@@ -306,11 +305,11 @@ evals:
 tes = [1757732729, 1850800741, 2009722734, 2311127617, 405713771, 3834224484, 863833119, 817890511, 8529549];
 </script>
  -->
-<input size=35 id=ed1_2 value="_fxbtoDec([1757732729, 1850800741, 2009722734, 2311127617, 405713771, 3834224484, 863833119, 817890511, 8529549]);">
+<input size=35 id="ed1_2" value="_fxbtoDec([1757732729, 1850800741, 2009722734, 2311127617, 405713771, 3834224484, 863833119, 817890511, 8529549]);">
 <button onClick="putLog('span1', eval(ed1_2.value));">2</button> |
 <button onClick="doClick1t('span1', ed1_2.value);">t</button> |
 <button onClick="doClick1t2('span1', ed1_2.value);">t2</button> |
-<input size=25 id=ed1_3 value="intx.setValue('0x068e3a336fec962ddab98caf99f5da470dc1ee7411da78e79589e8a262fe16e046314f83ed6e0021d8af5c260d0a96cd3018d2eff091e3387bf9a3c01e5721ec0b24087a1c3e70844d27f8750b4a74517d89c39e781e6002f3076d2287a32b73821a98744');">
+<input size=25 id="ed1_3" value="intx.setValue('0x068e3a336fec962ddab98caf99f5da470dc1ee7411da78e79589e8a262fe16e046314f83ed6e0021d8af5c260d0a96cd3018d2eff091e3387bf9a3c01e5721ec0b24087a1c3e70844d27f8750b4a74517d89c39e781e6002f3076d2287a32b73821a98744');">
 <!--                           
 A={lo:234567890, hi:4456};
 intx.setValue('0x87b9087a1c3e84cd27f875b4457d89c9e1e6002f3076d2287a32b73821a98744')
@@ -324,11 +323,11 @@ intx.setValue('0x87b9087a1c3e84cd27f875b4457d89c9e1e6002f3076d2287a32b73821a9874
 <hr>
 
 <div id=div_2>
-<input size=30 id=ed2_1 value=1234567890>
-<button onClick="putLog('span2', _toHex(eval(ed2_1.value),2));">tohex</button> |
+<input size=30 id="ed2_1" value=1234567890>
+<button onClick="putLog('span2', _toHex(eval(gete('ed2_1').value),2));">tohex</button> |
 <input size=20 id=ed2_2 value=1234567890>
-<button onClick="dumpres('span2', ed2_1.value, 0)">&nbsp;</button>
-<button onClick="dumpres('span2', ed2_2.value, 1)">&nbsp;</button> |
+<button onClick="dumpres('span2', gete('ed2_1').value, 0)">&nbsp;</button>
+<button onClick="dumpres('span2', gete('ed2_2').value, 1)">&nbsp;</button> |
 <!-- input size=30 id=ed2_3 value="[0x10101,0x101101,0x11011011]" -->
 <!-- input size=30 id=ed2_3 value="[0x10,0x100,0x1000]" -->
 <input size=30 id=ed2_3 value="[1043854253,31688603,3176945672,1147332551,1273901639,3661566430,1074417771,1185166839]">
@@ -337,7 +336,7 @@ Array: [1043854253,31688603,3176945672,1147332551,1273901639,3661566430,10744177
 ERR=3195203477785973185162491889100310691117147109104480631913168114512118091287131443188687111871669191313
 OK_=31952034777859738562498890030691747090448063936814521809287344388687187669933
 -->
-<button onClick="doClick23('span2', ed2_3.value)">&nbsp;</button>
+<button onClick="doClick23('span2', gete('ed2_3').value)">&nbsp;</button>
 <span id=span2></span>
 </div>
 <hr>
@@ -346,12 +345,12 @@ OK_=3195203477785973856249889003069174709044806393681452180928734438868718766993
 i64: <input size=30 id=ed3_1 value="8234567890123456789012345">
 <button onClick="doClick31('span3', ed3_1.value);">1</button>
 <input id="ickDEBUG" type="checkbox" onClick="DEBUG_MODE = -1 * +(ickDEBUG.checked);">debug/random
-intx bits: <input size=6 id=ed3_2 value="1013">
-<button onClick="doClick32('span3', ed3_2.value);">init</button>
+intx bits: <input size=6 id="ed3_2" value="1013">
+<button onClick="doClick32('span3', gete('ed3_2').value);">init</button>
 ||
-<button onClick="doClick33('span3', ed3_2.value);">3a</button>
-<button onClick="doClick34('span3', ed3_2.value);">3b</button>
-<button onClick="doClick35('span3', ed3_2.value);">5</button> ||
+<button onClick="doClick33('span3', gete('ed3_2').value);">3a</button>
+<button onClick="doClick34('span3', gete('ed3_2').value);">3b</button>
+<button onClick="doClick35('span3', gete('ed3_2').value);">5</button> ||
 <span id=span3></span>
 </div>
 <hr>
