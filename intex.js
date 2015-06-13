@@ -1287,44 +1287,102 @@ function _fxbShr12_p(B0, B1) { // SHR12 with fixed signed values
   return +ovr0;
 }
 
-function _fxbSub(A, B, top1, top2, lenA) {
-  // no val check, MUST be all positive. length.A >= length.B
-  //top1 = _bsra(A); // most significant dword A
-  //top2 = top2 | _bsra(B); // most significant dword B
-  //len1 = len1 | A.length;
-  // bot1 = bot1 | 0;
-  // bot2 = bot2 | 0;
-  var a, b, i, ovr = 0;
+function _fxbSub(A, B, top1, top2) {
+// will NOT write over A's top1
+  var a, i, ovr = 0;
   // proceed normally until substractor exhausted
-  //if (top1<top2) { for (i=top1+1; i<=top2; i++) A[i]=0; top1=top2; } // CRAPS!
-  while (top1 < top2) A[++top1] = 0;
-  for (i = 0; i <= top2; i++) {
+  var m = Math.min(top1, top2);
+  for (i = 0; i <= m; i++) {
     a = A[i] - B[i] - ovr;
     ovr = +(a < 0)
     A[i] = a + POSITIVIZE[ovr]
   }
-  if (!ovr) return 0; // no worry, go back
-  if (top1 == top2) { // at the end of conversation? top1 always >= top2
-    if (i < lenA)  // do not initialize loop if it is not necessary
-      for (i = i; i < lenA; i++)
-         A[i] = MASK32; // extend sign
-    ovr = 1; // always returns carry
-  }
-  else { // (top1 > top2) there's more than substractor
-    while (a[i] == 0 && i++ < top1)
-      A[i - 1] = MASK32; // extend sign resulted from zero minus (carry)
-    //ovr = (i >= lenA)
-    A[i]-= 1; // decrease the first non-zero
-    ovr = 0; // always returns no-carry
+  if (ovr) {
+    while (i <= top1 && !A[i]) { // A[i] == 0 ?
+      A[i] = 0xffffffff; // extend sign resulted from zero minus (carry)
+      i++;
+    }
+    if (i <= top1) {
+      A[i]--;
+      ovr = 0;
+    }
   }
   return ovr; // tired of returning objects, we return carry flag now.
 }
+
+  function _fxbSubEx(A, B, Len1, top2) {
+    // A will be extended if smaller than B, Len1 is A.length-1
+    var a, b, i, ovr = 0;
+    while (Len1 < top2) A[++Len1] = 0;
+    for (i = 0; i <= top2; i++) {
+      a = A[i] - B[i] - ovr;
+      ovr = +(a < 0)
+      A[i] = a + POSITIVIZE[ovr]
+    }
+    if (ovr) {
+      while (i <= Len1 && !A[i]) {
+        A[i] = 0xffffffff;
+        i++;
+      }
+      if (i > Len1) A[i] = 0xffffffff;
+      else {
+        ovr = 0;
+        A[i]--;
+      }
+    }
+    return ovr;
+  }
+
+function _fxbAdd(A, B, top1, top2) { // A + B, result saved in A;
+// will NOT write over A's top1
+  var a, i, ovr = 0;
+  var m = Math.min(top1, top2);
+  for (i = 0; i <= m; i++) {
+	a = A[i] + B[i] + ovr;
+    ovr = +(a >= 0x100000000)
+    A[i] = a - POSITIVIZE[ovr]
+  }
+  if (ovr) {
+    while (i <= top1 && !~A[i]) { // A[i] == -1 ?
+      A[i] = 0; // carry makes full bits become zero, and carry carried over
+      i++;
+    }
+    if (i <= top1) {
+      A[i]++;
+      ovr = 0;
+    }
+  }
+  return +ovr; // tired of returning objects, we return carry flag now.
+}
+
+  function _fxbAddEx(A, B, Len1, top2) { // A + B, result saved in A;
+    // A will be extended if smaller than B, Len1 is A.length-1
+    var a, i, ovr = 0;// , Len1 = A.length - 1;
+    while (Len1 < top2) A[++Len1] = 0;
+    for (i = 0; i <= top2; i++) {
+  	a = A[i] + B[i] + ovr;
+      ovr = +(a >= 0x100000000)
+      A[i] = a - POSITIVIZE[ovr]
+    }
+    if (ovr) {
+      while (i <= Len1 && !~A[i]) { // A[i] == -1 ?
+        A[i] = 0;
+        i++;
+      }
+      if (i > Len1) A[i] = 1;
+      else {
+        ovr = 0;
+        A[i]++;
+      }
+    }
+    return ovr;
+  }
 
 var _fxbAddShift = function(B, top) {
 //AddShift([1,2,3,4,5,6,7,8],5);
   var A = B.slice(0);
   A.unshift(A[0]);
-  var a = A[1], b= A[2], c = a+b, r = c >= 0x100000000;
+  var a = A[1], b = A[2], c = a + b, r = c >= 0x100000000;
   for (var i = 1; i < top; i++ ){
     A[i] = c - POSITIVIZE[+r];
     a = b;
@@ -1337,33 +1395,6 @@ var _fxbAddShift = function(B, top) {
   A[top] += r;
   return A;
 };
-
-function _fxbAdd(A, B, top1, top2) { // A + B, result svaed in A;
-  // no val check, MUST be all positive
-  // top1 = _bsra(A); // most significant dword A
-  // top2 = _bsra(B); // most significant dword B
-  var Len1 = A.length;
-  var a, b, i, ovr = 0;
-  // proceed normally until adder exhausted
-  //if (top1 < top2) { for (i = top1 + 1; i <= top2; i++) A[i] = 0; top1 = top2; } // CRAPS!
-  while (top1 < top2) A[++top1] = 0;
-  for (i = 0; i <= top2; i++) {
-	a = A[i] + B[i] + ovr;
-    ovr = +(a >= 0x100000000)
-    A[i] = a - POSITIVIZE[ovr]
-  }
-  if (!ovr) return 0; // don't care for the rest, go back
-  if (i >= Len1) return 1;
-  if (top1 == top2)  // top1 will NEVER be less than top2
-    { A[i] = 1; ovr = 0;}
-  else { // top1 > top2
-    while (a[i] == 0xffffffff && i++ < top1)
-      A[i - 1] = 0; // carry makes full bits become zero, and carry carried over
-    ovr = +(i >= Len1) // still carry at the end?
-    if (!ovr) A[i] += 1; //inc the first non all-bits-set
-  }
-  return +ovr; // tired of returning objects, we return carry flag now.
-}
 
 function _fxbCmp(A, B, top1, top2) {
 // an over-optimized cmp
@@ -1534,7 +1565,7 @@ function _fxbShr2br(val, B0, B1, top0, top1) { // signed values positivized
 
 // ************************************************************
 
-function _bsr(n, calc) { // naive
+function _bsr(n, calc) { // naive bitscan reverse (BSR) check.
   if (n < 0 || n > 0x80000000) return calc ? 0x80000000 : 31;
   if (n < 2) return calc ? n : n - 1; // n = zero, will return -1
   for(var r = 2, i = 2; i < 32; i++) {
@@ -1545,9 +1576,8 @@ function _bsr(n, calc) { // naive
   return calc ? 0x40000000 : 30 ;
 }
 
-function  _bsr2(n, start) {
-// yet another over optimization
-// does not allow negative value!
+function _bsr2(n, start) {
+// yet another over optimization. does not allow negative value!
 var i = 0, i12 = 11, i20 = 19;
 var a = [1,2,4,8,
   0x10,0x20,0x40,0x80,
@@ -1558,7 +1588,7 @@ var a = [1,2,4,8,
   0x1000000,0x2000000,0x4000000,0x8000000,
   0x10000000,0x20000000,0x40000000,0x80000000,
   0x100000000];
-  // allow negative, sigh...
+  // allows negative, sigh...
   if (n < 0) n = (n | 0) + 0x100000000;
   if (n < 3) return n - 1;
   // another fuchin ztupix eediots JS precedence
@@ -1573,7 +1603,8 @@ var a = [1,2,4,8,
 
 
 var _f642e = new Float64Array(1);
-function _bsr3(number, start) { // new browser only
+function _bsr3(number, start) {
+// ridiculous optimization, new browser only, with Uint32Array capability.
 /*
   7654321076543210765432107654321076543210765432107654321076543210
          7       6       5       4       3       2       1
@@ -1708,10 +1739,12 @@ var _fxbtoHex = function (B, top) { // hexadecimals value of buffer;
   //len = len | B.length;
   //top = _bsra(B);
   var s = '';
-  for (var i = 0; i <= top; i++) {
-    var hex = (B[top - i]).toString(16);
-    hex = '00000000'.substr(0, 8 - ((hex.length - 1) & 7) + 1) + hex;
-    s += x;
+  for (var i = top; i >= 0; i--) {
+    var hex = (B[i]).toString(16);
+    //hex = '00000000'.substr(0, 8 - ((hex.length - 1) & 7) + 1) + hex;
+    var pad = 8 - hex.length;
+    if (pad) s += '00000000'.substr(0, pad);
+    s += hex;
   }
   return s;
 };
@@ -1752,8 +1785,9 @@ var _fxbDivMod10r = function (B, top, msb_3, SHIFT) { // returns decimals remain
 /* ********************************************************************* */
 // buffer/continuous bits to decimals conversion. extensively optimized.
 /* ********************************************************************* */
+//var _fxbtoDec = function (B) {
 var _fxbtoDec = function (B, top, method, strn, itr, _continued_) {
-var rcx2r = [[34078,20971], [60293,47185], [20971,7864], [47185,34078], [7864,60293]];
+  var rcx2r = [[34078,20971], [60293,47185], [20971,7864], [47185,34078], [7864,60293]];
 
   function xRCPX(n, r, m)
     {  m = m |0; return _fxMul16r(n, rcx2r[m][0], rcx2r[m][1], r); }
@@ -1779,10 +1813,10 @@ var rcx2r = [[34078,20971], [60293,47185], [20971,7864], [47185,34078], [7864,60
       for (var i = 0; i < j; i++)
         D.unshift(0);
       A[++Atop] = 0;
-      _fxbAdd(A, D, Atop, Atop);
+      _fxbAddEx(A, D, Atop, Atop);
     }
     k = top % 5;
-    if (!k || k & 2) _fxbAdd(A, B, len-1, top);
+    if (!k || k & 2) _fxbAddEx(A, B, Atop, top);
     return A;
   }
 
@@ -1855,96 +1889,112 @@ var rcx2r = [[34078,20971], [60293,47185], [20971,7864], [47185,34078], [7864,60
       _fxDouble(B, top1);
 
     k = A.length;
+    var Len1 = B.length - 1;
     for(i = 0; i < k; i++)
-      _fxbAdd(B, A[i], top2, A[i].length - 1);
+      _fxbAddEx(B, A[i], Len1, A[i].length - 1);
     A = [];
     return B;
   }
 
-  /*********** ENTRY POINT *******************/
-  function __init() {
-    var i = 0;
-    B = B.slice(0); // release original B;
-    top = B.length;
-    while (top && B[--top] == 0) B.pop();
-    if (top < 1) return top ? '' + B[0] : '0';
+  //var __fxbtoDec = function (B, top, method, strn, itr, _continued_) {
+  
+    /*********** ENTRY POINT *******************/
+    function __init() {
+      var i = 0;
+      B = B.slice(0); // release original B;
+      top = B.length;
+      while (top && B[--top] == 0) B.pop();
+      if (top < 1) return top ? '' + B[0] : '0';
+  
+      if (top > 512) return 'sorry, too much'; // over 16Kbits
+  
+      // WARNING! 16Kbits need 38+ seconds in Chrome-38, 43 seconds in opera 12.16.
+      // 16Kbits not tested in other browser. Opera lag a small bit behind Chrome,
+      // Firefox-35 is twice slower, IE9 thrice to fifth times slower,
+      // for 8192 bits: Chrome/Opera got it by 4+ seconds, firefox: 9+ seconds,
+      // while IE9 by 25 seconds! // Computer: i5-3570K-underclocked 1.800Ghz
+      //
+      // update: firefox-4.01 is the winner: crunching 16KB by 27.2 seconds!
+      // (and thats with tons of addons: firebug+ addons, httpfox, adblockplus, 
+      //   noscript, ghostery, and many more..).
+      // The slow, latest firefox-35 is a BIG dissapoinment!
+      //
+      // update: pullout some subroutines. apparently firefox doesn't like it much,
+      // the performance down to 32 sec/16KB, even when cpu boosted to 2.4GHz,
+      // opera 12.16 make it by 30 sec now, and chrome by 25 secs.
+      // pull back in routines, firefox-4.01 got it's crown back by 22 sec.
 
-    if (top > 512) return 'sorry, too much'; // over 16Kbits
-
-    // WARNING! 16Kbits need 38+ seconds in Chrome, 43 seconds in opera.
-    // 16Kbits not tested in other browser. Opera a small bit below Chrome,
-    // Firefox is twice slower, IE9 thrice to fifth times slower,
-    // for 8192 bits: Chrome/Opera got it by 4+ seconds, firefox: 9+ seconds,
-    // while IE9 by 25 seconds! // Computer: i5-3570K-underclocked 1.800Ghz
-
-    //assert(false);
-    method = method |0;
-    method = 1;
-    method = 0;
-    method = 1;
-    method = 0;
-    method = 2;
-    itr = 0;
-    for (i = 0; i <= top; i++)
-      if (B[i] < 0)
-        B[i] = (B[i] | 0) + 0x100000000;
-    if (typeof strn === 'undefined') {
-      strn = [];
-      for (i = 90; i < 100; i++) strn[i - 90] = '' + i;
-      for (i = 0; i < 10; i++) strn[i + 10] = '0' + i;
-      for (i = 10; i < 100; i++) strn[i + 10] = '' + i;
-      for (i = 100; i < 110; i++) strn[i + 10] = '' + (i - 100);
+      //assert(false);
+      method = method |0;
+      method = 1;
+      method = 0;
+      method = 1;
+      method = 0;
+      method = 2;
+      itr = 0;
+      for (i = 0; i <= top; i++)
+        if (B[i] < 0)
+          B[i] = (B[i] | 0) + 0x100000000;
+      if (typeof strn === 'undefined') {
+        strn = [];
+        for (i = 90; i < 100; i++) strn[i - 90] = '' + i;
+        for (i = 0; i < 10; i++) strn[i + 10] = '0' + i;
+        for (i = 10; i < 100; i++) strn[i + 10] = '' + i;
+        for (i = 100; i < 110; i++) strn[i + 10] = '' + (i - 100);
+      }
+  
+     }
+  
+    if (_continued_ != -99) __init();
+    /*********** ENTRY POINT *******************/
+  
+    //if (itr > 1000) return '';
+    if (top < 0) return '';
+    var msb = _bsr2(B[top]);
+    if (top < 2)
+      if (top == 0) return '' + B[0];
+      else
+        // damn!!! can't we rely on js for this end, even 22 is TOO HIGH!
+        if (msb < 22 - 1) return '' + (B[1] * CAP32 + B[0]);
+  
+    var C = [], D = B.slice(0);
+  
+    switch (method) {
+      case 1: D = _fxbMulRcpx1st(B, top); break;
+      case 2: _fxbMulRcpx2nd(D, top); break;
+      default: return __fxbtoDecimals(B); break;
     }
+  
+    var len = D.length;
+    D = D.slice(top + 1);
+  
+    _fxbShrr(D, 5, top);
+  
+    C = B.slice(0);
+    B = D.slice(0);
+  
+    _fxbMul1e2(D, top);
+    _fxbSubEx(C, D, top + 1, top);
+  
+    var r = C[0]; // & 127;
+  
+    //release resources to system//not necessary, just nice//
+    C = [];
+    D = [];
+  
+    r |= 0;
+    if (r < 0) _fxbDec1(B, top);
+    else if (r >= 100) _fxbInc1(B, top);
+  
+    if (B[top] == 0) {
+      B.pop();
+      top--;
+    }
+  
+    return _fxbtoDec(B, top, method, strn, ++itr, -99) + strn[r + 10];
+  //};
 
-   }
-
-  if (_continued_ != -99) __init();
-  /*********** ENTRY POINT *******************/
-
-  //if (itr > 1000) return '';
-  if (top < 0) return '';
-  var msb = _bsr2(B[top]);
-  if (top < 2)
-    if (top == 0) return '' + B[0];
-    else
-      // damn!!! can't we rely on js for this end, even 22 is TOO HIGH!
-      if (msb < 22 - 1) return '' + (B[1] * CAP32 + B[0]);
-
-  var C = [], D = B.slice(0);
-
-  switch (method) {
-    case 1: D = _fxbMulRcpx1st(B, top); break;
-    case 2: _fxbMulRcpx2nd(D, top); break;
-    default: return _fxbtoDecimals(B); break;
-  }
-
-  var len = D.length;
-  D = D.slice(top + 1);
-
-  _fxbShrr(D, 5, top);
-
-  C = B.slice(0);
-  B = D.slice(0);
-
-  _fxbMul1e2(D, top);
-  _fxbSub(C, D, top - 1, top, top + 1);
-
-  var r = C[0]; // & 127;
-
-  //release resources to system//not necessary, just nice//
-  C = [];
-  D = [];
-
-  r |= 0;
-  if (r < 0) _fxbDec1(B, top);
-  else if (r >= 100) _fxbInc1(B, top);
-
-  if (B[top] == 0) {
-    B.pop();
-    top--;
-  }
-
-  return _fxbtoDec(B, top, method, strn, ++itr, -99) + strn[r + 10];
+  //return __fxbtoDec(B); 
 };
 
 var _fxbtoDecimals = function (B, top, SHIFT, itr) {
